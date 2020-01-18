@@ -1,0 +1,8 @@
+# The OAuth token
+src/.env
+
+# IDE generated files
+*.sublime-workspace
+
+# Python stuff
+__pycache__
