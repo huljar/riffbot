@@ -2,7 +2,19 @@
     "folders":
     [
         {
-            "path": "."
+            "path": ".",
+            "folder_exclude_patterns": ["__pycache__"]
         }
-    ]
+    ],
+    "settings": {
+        "LSP": {
+            "pyls": {
+                "enabled": true,
+                "env": {
+                    // adjust to wherever your virtualenv resides
+                    "PYTHONPATH": "../venvs/riffbot/lib/python3.6/site-packages"
+                }
+            }
+        }
+    }
 }

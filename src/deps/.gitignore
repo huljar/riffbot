@@ -1,0 +1,4 @@
+# Ignore everything in this directory as only dependencies that need to be installed manually should be placed here
+*
+# ... but don't ignore this .gitignore
+!.gitignore

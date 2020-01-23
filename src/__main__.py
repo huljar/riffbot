@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from riffbot.bot import bot
 
+
 def main():
     # Read environment variables from .env file
     load_dotenv()
@@ -10,6 +11,7 @@ def main():
 
     # Run the bot
     bot.run(token)
+
 
 if __name__ == "__main__":
     main()

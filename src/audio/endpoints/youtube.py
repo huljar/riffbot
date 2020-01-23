@@ -1,16 +1,24 @@
 import pafy
+import requests
 
 from audio.endpoint import Endpoint
+from audio.streambuffer import SLOT_SIZE
+
 
 class YouTubeEndpoint(Endpoint):
-    def init_stream(self, url):
-        video = pafy.new(url)
-        print(f"Downloading {video.title} …")
-        self.stream = video.getbestaudio(preftype="m4a")
+    def __init__(self, url):
+        video = pafy.new(self.url)
+        print(f"Title: {video.title}")
+        stream = video.getbestaudio(preftype="m4a")
         for s in video.audiostreams:
             print(s.bitrate, s.extension, s.get_filesize())
-        print(f"I chose ({self.stream.bitrate} {self.stream.extension} {self.stream.get_filesize()})")
+        print(
+            f"I chose ({stream.bitrate} {stream.extension} {stream.get_filesize()})")
         # self.buffer = self.stream.stream_to_buffer()
-        print(f"The stream URL is")
-        self.stream.download("test.m4a")
-        print("Download finished!")
+        print(f"The stream URL is {stream.url_https}")
+        self.stream_url = stream.url_https
+        self.stream_size = stream.get_filesize()
+
+    def get_chunk(self):
+        with requests.get(self.stream_url, stream=True) as request:
+            yield from request.iter_content(SLOT_SIZE)
