@@ -2,65 +2,87 @@ import io
 import math
 from deps import ringbuffer as rb
 
-SLOT_SIZE = 32 * 1024  # 32 KB
-SLOT_COUNT = 32  # 1 MB total buffer size
+DEFAULT_SLOT_SIZE = 32 * 1024  # 32 KB
+DEFAULT_SLOT_COUNT = 32  # 1 MB total buffer size
 
 
 class StreamBuffer(io.BufferedIOBase):
-    def __init__(self):
-        self._rb = rb.RingBuffer(slot_bytes=SLOT_SIZE, slot_count=SLOT_COUNT)
+    def __init__(self, *, slot_size=DEFAULT_SLOT_SIZE, slot_count=DEFAULT_SLOT_COUNT):
+        self._rb = rb.RingBuffer(slot_bytes=slot_size, slot_count=slot_count)
+        self._slot_size = slot_size
+        self._slot_count = slot_count
         self._reader = self._rb.new_reader()
         self._rb.new_writer()
         self._writer = self._rb.writer
-
         self._read_cache = bytearray()
-        self._sealed = False
 
     def detach(self):
         raise io.UnsupportedOperation()
 
     def read(self, size=-1):
-        bytes_to_read = (SLOT_SIZE if size is None or size < 0 else size) - len(self._read_cache)
-        slots_to_read = 0 if bytes_to_read <= 0 else math.ceil(bytes_to_read / SLOT_SIZE)
+        return_bytes = self._slot_size if size is None or size < 0 else size
+        cached_bytes = len(self._read_cache)
+        bytes_to_read = max(0, return_bytes - cached_bytes)
+        slots_to_read = 0 if bytes_to_read <= 0 else math.ceil(bytes_to_read / self._slot_size)
 
         if self._reader.get().counter + slots_to_read > self._writer.get().counter:
             raise io.BlockingIOError()
 
+        # Use the cached bytes
+        builder = bytearray()
+        builder += self._read_cache[:return_bytes]
+        del self._read_cache[:return_bytes]
+
+        # Read more bytes (if necessary)
         try:
-            return self._rb.try_read(self._reader)
-        except (rb.WriterFinishedError, rb.WaitingForWriterError):
+            for remaining_bytes in range(bytes_to_read, 0, -self._slot_size):
+                read_bytes = self._rb.try_read(self._reader)
+                builder += read_bytes[:remaining_bytes]
+                self._read_cache = read_bytes[remaining_bytes:]
+        except rb.WaitingForWriterError:
+            print("ran into a pre-checked error, this should never happen")
             raise io.BlockingIOError()
+        except rb.WriterFinishedError:
+            pass
+
+        return bytes(builder)
 
     def read1(self, size=-1):
-        return self.read(SLOT_SIZE if size == -1 else size)
+        return self.read(self._slot_size if size == -1 else min(size, self._slot_size))
 
     def readinto(self, b):
-        b[0:SLOT_SIZE] = self.read1()
-        return SLOT_SIZE
+        b[0:self._slot_size] = self.read1()
+        return self._slot_size
 
     def readinto1(self, b):
         return self.readinto(b)
 
     def write(self, b):
-        slots_to_write = math.ceil(len(b) / SLOT_SIZE)
-        writable_slots = SLOT_COUNT - self._distance()
+        """ Write bytes-like data into the buffer.
+
+        Note that len(b) must be a multiple of self._slot_size unless it is the last chunk that is written to the buffer
+        (and seal() will be called afterwards).
+        """
+        slots_to_write = math.ceil(len(b) / self._slot_size)
+        writable_slots = self._slot_count - self._distance()
 
         if slots_to_write > writable_slots:
             raise io.BlockingIOError()
 
         try:
-            for i in range(0, len(b), SLOT_SIZE):
-                self._rb.try_write(b[i:i+SLOT_SIZE])
+            for i in range(0, len(b), self._slot_size):
+                self._rb.try_write(b[i:i+self._slot_size])
         except rb.WaitingForReaderError:
             raise io.BlockingIOError()
 
     def seal(self):
         """ Indicate that the stream is fully downloaded and no more data will be written to the buffer."""
-        self._sealed = True
+        self._rb.writer_done()
 
     def _distance(self):
         """ Returns the distance that the writer is ahead of the reader """
         dist = self._writer.get().counter - self._reader.get().counter
-        if dist > SLOT_COUNT:
-            raise f"distance {dist} is greater than SLOT_COUNT {SLOT_COUNT}, this should never happen"
+        if dist > self._slot_count:
+            print(f"distance {dist} is greater than self._slot_count {self._slot_count}, this should never happen")
+            raise io.UnsupportedOperation()
         return dist

@@ -7,6 +7,9 @@ install-dev:
 run:
 	@python3 src/__main__.py
 
+test:
+	@PYTHONPATH=src python3 -m unittest discover -s tests/unit
+
 help:
 	@echo "Usage:"
 	@echo "  help         Print this help"
@@ -15,5 +18,6 @@ help:
 	@echo "  install-dev  Install the development dependencies"
 	@echo "               (Python Language Server)"
 	@echo "  run          Initialize and run the bot"
+	@echo "  test         Run all tests in the tests/ directory"
 
-.PHONY: install install-dev run help
+.PHONY: install install-dev run test help

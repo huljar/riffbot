@@ -1,5 +1,6 @@
 from discord.ext import commands
 
+
 def is_in_voice_channel():
     async def predicate(ctx):
         try:
