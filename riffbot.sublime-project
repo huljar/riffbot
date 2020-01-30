@@ -10,9 +10,9 @@
         "LSP": {
             "pyls": {
                 "enabled": true,
+                "command": ["../venvs/riffbot/bin/pyls"], // adjust to your virtualenv
                 "env": {
-                    // adjust to wherever your virtualenv resides
-                    "PYTHONPATH": "../venvs/riffbot/lib/python3.6/site-packages"
+                    "PYTHONPATH": "../venvs/riffbot/lib/python3.6/site-packages" // adjust to your virtualenv
                 }
             }
         }

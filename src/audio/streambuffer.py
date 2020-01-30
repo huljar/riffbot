@@ -2,12 +2,12 @@ import io
 import math
 from deps import ringbuffer as rb
 
-DEFAULT_SLOT_SIZE = 32 * 1024  # 32 KB
-DEFAULT_SLOT_COUNT = 32  # 1 MB total buffer size
+DEFAULT_SLOT_SIZE = 128 * 1024  # 128 KB
+DEFAULT_SLOT_COUNT = 16  # 2 MB total buffer size
 
 
 class StreamBuffer(io.BufferedIOBase):
-    def __init__(self, *, slot_size=DEFAULT_SLOT_SIZE, slot_count=DEFAULT_SLOT_COUNT):
+    def __init__(self, *, slot_size: int = DEFAULT_SLOT_SIZE, slot_count: int = DEFAULT_SLOT_COUNT):
         self._rb = rb.RingBuffer(slot_bytes=slot_size, slot_count=slot_count)
         self._slot_size = slot_size
         self._slot_count = slot_count
@@ -15,11 +15,15 @@ class StreamBuffer(io.BufferedIOBase):
         self._rb.new_writer()
         self._writer = self._rb.writer
         self._read_cache = bytearray()
+        self._sealed = False
 
     def detach(self):
         raise io.UnsupportedOperation()
 
     def read(self, size=-1):
+        if self._sealed and self._distance() == 0 and len(self._read_cache):
+            return bytes()
+
         return_bytes = self._slot_size if size is None or size < 0 else size
         cached_bytes = len(self._read_cache)
         bytes_to_read = max(0, return_bytes - cached_bytes)
@@ -51,7 +55,7 @@ class StreamBuffer(io.BufferedIOBase):
         return self.read(self._slot_size if size == -1 else min(size, self._slot_size))
 
     def readinto(self, b):
-        b[0:self._slot_size] = self.read1()
+        b[:self._slot_size] = self.read1()
         return self._slot_size
 
     def readinto1(self, b):
@@ -77,6 +81,7 @@ class StreamBuffer(io.BufferedIOBase):
 
     def seal(self):
         """ Indicate that the stream is fully downloaded and no more data will be written to the buffer."""
+        self._sealed = True
         self._rb.writer_done()
 
     def _distance(self):

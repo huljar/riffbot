@@ -1,13 +1,13 @@
 import pafy
 import requests
+from typing import Generator
 
 from audio.endpoint import Endpoint
-from audio.streambuffer import SLOT_SIZE
 
 
 class YouTubeEndpoint(Endpoint):
-    def __init__(self, url):
-        video = pafy.new(self.url)
+    def __init__(self, url: str):
+        video = pafy.new(url)
         print(f"Title: {video.title}")
         stream = video.getbestaudio(preftype="m4a")
         for s in video.audiostreams:
@@ -19,6 +19,6 @@ class YouTubeEndpoint(Endpoint):
         self.stream_url = stream.url_https
         self.stream_size = stream.get_filesize()
 
-    def get_chunk(self):
+    def stream_chunks(self, chunk_size: int) -> Generator[bytes, None, None]:
         with requests.get(self.stream_url, stream=True) as request:
-            yield from request.iter_content(SLOT_SIZE)
+            yield from request.iter_content(chunk_size)
