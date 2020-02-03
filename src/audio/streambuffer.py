@@ -1,13 +1,16 @@
+from blinker import signal
 import io
 import math
 from deps import ringbuffer as rb
 
-DEFAULT_SLOT_SIZE = 128 * 1024  # 128 KB
-DEFAULT_SLOT_COUNT = 16  # 2 MB total buffer size
+DEFAULT_SLOT_SIZE = 64 * 1024  # 64 KB
+DEFAULT_SLOT_COUNT = 32  # 2 MB total buffer size
+DEFAULT_WARNING_THRESHOLD = 512 * 1024  # 512 KB warning threshold
+WARNING_SIGNAL_NAME = "StreamBufferAlmostDepleted"
 
 
 class StreamBuffer(io.BufferedIOBase):
-    def __init__(self, *, slot_size: int = DEFAULT_SLOT_SIZE, slot_count: int = DEFAULT_SLOT_COUNT):
+    def __init__(self, *, slot_size: int = DEFAULT_SLOT_SIZE, slot_count: int = DEFAULT_SLOT_COUNT, warning_threshold: int = DEFAULT_WARNING_THRESHOLD):
         self._rb = rb.RingBuffer(slot_bytes=slot_size, slot_count=slot_count)
         self._slot_size = slot_size
         self._slot_count = slot_count
@@ -15,13 +18,30 @@ class StreamBuffer(io.BufferedIOBase):
         self._rb.new_writer()
         self._writer = self._rb.writer
         self._read_cache = bytearray()
+        self._warning_threshold = warning_threshold
         self._sealed = False
 
+    def seal(self):
+        """ Indicate that the stream is fully downloaded and no more data will be written to the buffer."""
+        self._sealed = True
+        self._rb.writer_done()
+
+    def distance(self):
+        """ Returns the distance that the writer is ahead of the reader """
+        dist = self._writer.get().counter - self._reader.get().counter
+        if dist > self._slot_count:
+            print(f"distance {dist} is greater than self._slot_count {self._slot_count}, this should never happen")
+            raise io.UnsupportedOperation()
+        return dist
+
+    ############################################################
+    # The following methods represent the BufferedIO interface #
+    ############################################################
     def detach(self):
         raise io.UnsupportedOperation()
 
     def read(self, size=-1):
-        if self._sealed and self._distance() == 0 and len(self._read_cache):
+        if self._sealed and self.distance() == 0 and len(self._read_cache) == 0:
             return bytes()
 
         return_bytes = self._slot_size if size is None or size < 0 else size
@@ -49,6 +69,9 @@ class StreamBuffer(io.BufferedIOBase):
         except rb.WriterFinishedError:
             pass
 
+        # Emit depletion warning if necessary
+        if self.distance() <= self._warning_threshold:
+            signal(WARNING_SIGNAL_NAME).send(self)
         return bytes(builder)
 
     def read1(self, size=-1):
@@ -68,7 +91,7 @@ class StreamBuffer(io.BufferedIOBase):
         (and seal() will be called afterwards).
         """
         slots_to_write = math.ceil(len(b) / self._slot_size)
-        writable_slots = self._slot_count - self._distance()
+        writable_slots = self._slot_count - self.distance()
 
         if slots_to_write > writable_slots:
             raise io.BlockingIOError()
@@ -78,16 +101,3 @@ class StreamBuffer(io.BufferedIOBase):
                 self._rb.try_write(b[i:i+self._slot_size])
         except rb.WaitingForReaderError:
             raise io.BlockingIOError()
-
-    def seal(self):
-        """ Indicate that the stream is fully downloaded and no more data will be written to the buffer."""
-        self._sealed = True
-        self._rb.writer_done()
-
-    def _distance(self):
-        """ Returns the distance that the writer is ahead of the reader """
-        dist = self._writer.get().counter - self._reader.get().counter
-        if dist > self._slot_count:
-            print(f"distance {dist} is greater than self._slot_count {self._slot_count}, this should never happen")
-            raise io.UnsupportedOperation()
-        return dist

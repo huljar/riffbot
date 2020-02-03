@@ -1,8 +1,9 @@
 install:
-	@pip3 install -U -r requirements.txt
+	@pip3 install wheel
+	@pip3 install -r requirements.txt
 
 install-dev:
-	@pip3 install -U -r requirements-dev.txt
+	@pip3 install -r requirements-dev.txt
 
 run:
 	@python3 src/__main__.py
