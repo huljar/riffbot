@@ -3,14 +3,11 @@ import io
 import math
 from deps import ringbuffer as rb
 
-DEFAULT_SLOT_SIZE = 64 * 1024  # 64 KB
-DEFAULT_SLOT_COUNT = 32  # 2 MB total buffer size
-DEFAULT_WARNING_THRESHOLD = 512 * 1024  # 512 KB warning threshold
-WARNING_SIGNAL_NAME = "StreamBufferAlmostDepleted"
+DEPLETION_SIGNAL_NAME = "StreamBufferAlmostDepleted"
 
 
 class StreamBuffer(io.BufferedIOBase):
-    def __init__(self, *, slot_size: int = DEFAULT_SLOT_SIZE, slot_count: int = DEFAULT_SLOT_COUNT, warning_threshold: int = DEFAULT_WARNING_THRESHOLD):
+    def __init__(self, *, slot_size: int, slot_count: int, depletion_threshold: int):
         self._rb = rb.RingBuffer(slot_bytes=slot_size, slot_count=slot_count)
         self._slot_size = slot_size
         self._slot_count = slot_count
@@ -18,7 +15,7 @@ class StreamBuffer(io.BufferedIOBase):
         self._rb.new_writer()
         self._writer = self._rb.writer
         self._read_cache = bytearray()
-        self._warning_threshold = warning_threshold
+        self._depletion_threshold = depletion_threshold
         self._sealed = False
 
     def seal(self):
@@ -70,8 +67,9 @@ class StreamBuffer(io.BufferedIOBase):
             pass
 
         # Emit depletion warning if necessary
-        if self.distance() <= self._warning_threshold:
-            signal(WARNING_SIGNAL_NAME).send(self)
+        if not self._sealed and self.distance() <= self._depletion_threshold:
+            signal(DEPLETION_SIGNAL_NAME).send(self)
+
         return bytes(builder)
 
     def read1(self, size=-1):
@@ -90,6 +88,9 @@ class StreamBuffer(io.BufferedIOBase):
         Note that len(b) must be a multiple of self._slot_size unless it is the last chunk that is written to the buffer
         (and seal() will be called afterwards).
         """
+        if self._sealed:
+            raise io.BlockingIOError()
+
         slots_to_write = math.ceil(len(b) / self._slot_size)
         writable_slots = self._slot_count - self.distance()
 

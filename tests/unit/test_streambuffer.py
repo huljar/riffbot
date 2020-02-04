@@ -5,7 +5,7 @@ from audio import streambuffer as sb
 
 class TestStreamBuffer(unittest.TestCase):
     def setUp(self):
-        self.sb = sb.StreamBuffer(slot_size=32, slot_count=5)  # small buffer
+        self.sb = sb.StreamBuffer(slot_size=32, slot_count=5, depletion_threshold=2)  # small buffer
 
     def test_slot_write_read1(self):
         written_bytes = b"Exactly one slot worth of bytes!"
