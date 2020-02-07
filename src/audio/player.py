@@ -6,9 +6,7 @@ import discord
 
 from .endpoint import Endpoint
 
-SLOT_SIZE = 128 * 1024  # 128 KB
-SLOT_COUNT = 8  # 1 MB total buffer size
-DEPLETION_THRESHOLD = 4  # 512 KB depletion warning threshold
+CHUNK_SIZE = 32 * 1024  # 32 KB
 
 
 class PlayState(Enum):
@@ -67,7 +65,7 @@ class Player:
 
 def _downloader(endpoint: Endpoint, pipe_write: int, halt_event: threading.Event):
     try:
-        for chunk in endpoint.stream_chunks(SLOT_SIZE):
+        for chunk in endpoint.stream_chunks(CHUNK_SIZE):
             if halt_event.is_set():
                 break
             os.write(pipe_write, chunk)

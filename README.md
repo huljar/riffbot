@@ -5,15 +5,12 @@ RiffBot aims to be a lighweight music bot that you can easily host yourself!
 # Installation
 
 ```bash
-# make a virtualenv somewhere
+# make a virtualenv somewhere and activate it
 python3 -m venv ../venvs/riffbot
 source ../venvs/riffbot/bin/activate
-# install using make
+# install via make
 make install
 ```
-
-The `ringbuffer` dependency can't be installed by pip unfortunately. You need to manually download it from [here](https://github.com/bslatkin/ringbuffer/blob/898c893c1a6944a999919a69d1f9527cb2af096b/ringbuffer.py) and place it in
-`src/deps/`.
 
 To install development tools, such as a Python Language Server, run
 ```bash
