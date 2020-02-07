@@ -1,41 +1,75 @@
-from blinker import signal
+from enum import Enum
+import os
+import threading
+
+import discord
+
 from .endpoint import Endpoint
-from .streambuffer import StreamBuffer, DEPLETION_SIGNAL_NAME
 
 SLOT_SIZE = 128 * 1024  # 128 KB
 SLOT_COUNT = 8  # 1 MB total buffer size
 DEPLETION_THRESHOLD = 4  # 512 KB depletion warning threshold
 
 
+class PlayState(Enum):
+    PLAYING = 1,
+    PAUSED = 2,
+    STOPPED = 3
+
+
+class PlayerStoppedError(Exception):
+    pass
+
+
 class Player:
-    def __init__(self, endpoint: Endpoint, *, init_chunks: int):
-        self._endpoint = endpoint
-        self._buffer = StreamBuffer(slot_size=SLOT_SIZE, slot_count=SLOT_COUNT,
-                                    depletion_threshold=DEPLETION_THRESHOLD)
-        self._loading = False
+    def __init__(self, endpoint: Endpoint, voice_client: discord.VoiceClient):
+        self._voice_client = voice_client
 
-        # Load inital chunks into buffer
-        self._chunk_generator = self._endpoint.stream_chunks(SLOT_SIZE)
-        try:
-            for i in range(init_chunks):
-                self._buffer.write(next(self._chunk_generator))
-        except StopIteration:
-            self._buffer.seal()
+        # Create pipe for ffmpeg
+        pipe_read, pipe_write = os.pipe()
 
-        # Connect depletion signal
-        signal(DEPLETION_SIGNAL_NAME).connect(self._on_depletion_warning, sender=self._buffer)
+        # Create and start thread that loads chunks and fills the pipe
+        self._halt_event = threading.Event()
+        self._downloader = threading.Thread(target=_downloader, args=(endpoint, pipe_write, self._halt_event))
+        self._downloader.start()
 
-    def _on_depletion_warning(self, sender):
-        if sender is not self._buffer:
-            raise f"Unexpected depletion signal from {sender}, this should never happen"
+        # Set up audio source and start playing
+        self._audio_source = discord.FFmpegPCMAudio(pipe_read, pipe=True)
+        self._voice_client.play(self._audio_source)
+        self._play_state = PlayState.PLAYING
 
-        if not self._loading:
-            self._loading = True
-            try:
-                while(self._buffer.distance() <= DEPLETION_THRESHOLD):
-                    self._buffer.write(next(self._chunk_generator))
-            except StopIteration:
-                self._buffer.seal()
-                signal(DEPLETION_SIGNAL_NAME).disconnect(self._on_depletion_warning, sender=self._buffer)
-            finally:
-                self._loading = False
+    def __del__(self):
+        self.stop()
+
+    def resume(self):
+        if self._play_state == PlayState.STOPPED:
+            raise PlayerStoppedError()
+
+        if self._play_state == PlayState.PAUSED:
+            self._play_state = PlayState.PLAYING
+            self._voice_client.resume()
+
+    def pause(self):
+        if self._play_state == PlayState.STOPPED:
+            raise PlayerStoppedError()
+
+        if self._play_state == PlayState.PLAYING:
+            self._play_state = PlayState.PAUSED
+            self._voice_client.pause()
+
+    def stop(self):
+        if self._play_state != PlayState.STOPPED:
+            self._play_state = PlayState.STOPPED
+            self._halt_event.set()
+            self._voice_client.stop()
+            self._audio_source.cleanup()
+
+
+def _downloader(endpoint: Endpoint, pipe_write: int, halt_event: threading.Event):
+    try:
+        for chunk in endpoint.stream_chunks(SLOT_SIZE):
+            if halt_event.is_set():
+                break
+            os.write(pipe_write, chunk)
+    finally:
+        os.close(pipe_write)

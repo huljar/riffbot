@@ -1,14 +1,14 @@
-import discord
 from discord.ext import commands
 
-from riffbot import checks
+from . import checks
+from audio.player import Player
 from audio.endpoints.youtube import YouTubeEndpoint
 
 bot = commands.Bot(command_prefix="!")
 
 _voice_client = None
+_player = None
 _explicit_join = False
-
 
 @bot.event
 async def on_ready():
@@ -43,17 +43,18 @@ async def leave(ctx):
 @bot.command(help="Play the song at the given URL.")
 @commands.guild_only()
 async def play(ctx, url):
-    # youtube = YouTubeEndpoint(url)
-    # audioSource = discord.FFmpegPCMAudio("test.m4a")
-    # _voice_client.play(audioSource)
-    pass
+    global _player
+    endpoint = YouTubeEndpoint(url)
+    _player = Player(endpoint, _voice_client)
 
 
 @bot.command(help="Log out and shut down the bot. This can only be done by admins and is irreversible.")
 @commands.has_permissions(administrator=True)
 async def shutdown(ctx):
+    global _player
     print(f"Shutdown triggered by {ctx.author.name} …")
     await ctx.send("Shutting down, goodbye!")
+    _player = None
     await bot.close()
 
 
