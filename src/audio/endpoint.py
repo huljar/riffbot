@@ -8,5 +8,5 @@ class Endpoint(ABC):
         pass
 
     @abstractmethod
-    def get_song_name(self) -> str:
+    def get_song_description(self) -> str:
         pass

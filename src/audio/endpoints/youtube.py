@@ -14,5 +14,5 @@ class YouTubeEndpoint(Endpoint):
         with requests.get(stream.url_https, stream=True) as request:
             yield from request.iter_content(chunk_size)
 
-    def get_song_name(self) -> str:
+    def get_song_description(self) -> str:
         return self._video.title

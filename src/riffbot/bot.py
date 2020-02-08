@@ -1,3 +1,6 @@
+import asyncio
+import typing
+
 from discord.ext import commands
 
 from . import checks
@@ -12,7 +15,7 @@ _explicit_join = False
 
 def on_song_over(queue_length):
     if queue_length == 0 and not _explicit_join:
-        leave_channel(None)
+        asyncio.get_event_loop().run_until_complete(leave_channel(None))
 
 
 _song_queue = SongQueue(on_song_over)
@@ -43,17 +46,32 @@ async def leave(ctx):
 
 @bot.command(help="Play the song at the given URL.")
 @commands.guild_only()
-async def play(ctx, url):
+async def play(ctx, url: typing.Optional[str]):
     global _song_queue, _explicit_join
-    if _voice_client is None:
-        _explicit_join = False
-        await join_channel(ctx)
-    endpoint = YouTubeEndpoint(url)
-    pos = _song_queue.enqueue(endpoint)
-    if pos == 0:
-        await ctx.send(f"▶ {endpoint.get_song_name()}")
+    if url is None or url == "":
+        # Resume paused song
+        player = _song_queue.get_player()
+        if player is not None:
+            player.resume()
+            await ctx.send(f"▶ {player.get_endpoint().get_song_description()}")
     else:
-        await ctx.send(f"({pos}) {endpoint.get_song_name()}")
+        if _voice_client is None:
+            _explicit_join = False
+            await join_channel(ctx)
+        endpoint = YouTubeEndpoint(url)
+        pos = _song_queue.enqueue(endpoint)
+        if pos == 0:
+            await ctx.send(f"▶ {endpoint.get_song_description()}")
+        else:
+            await ctx.send(f"[{pos}] {endpoint.get_song_description()}")
+
+
+@bot.command(help="Pause the currently playing song.")
+@commands.guild_only()
+async def pause(ctx):
+    player = _song_queue.get_player()
+    player.pause()
+    await ctx.send(f"⏸ {player.get_endpoint().get_song_description()}")
 
 
 @bot.command(help="Log out and shut down the bot. This can only be done by admins and is irreversible.")
