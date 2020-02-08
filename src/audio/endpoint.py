@@ -6,3 +6,7 @@ class Endpoint(ABC):
     @abstractmethod
     def stream_chunks(self, chunk_size: int) -> Generator[bytes, None, None]:
         pass
+
+    @abstractmethod
+    def get_song_name(self) -> str:
+        pass

@@ -20,7 +20,7 @@ class PlayerStoppedError(Exception):
 
 
 class Player:
-    def __init__(self, endpoint: Endpoint, voice_client: discord.VoiceClient):
+    def __init__(self, endpoint: Endpoint, voice_client: discord.VoiceClient, after):
         self._voice_client = voice_client
 
         # Create pipe for ffmpeg
@@ -33,7 +33,7 @@ class Player:
 
         # Set up audio source and start playing
         self._audio_source = discord.FFmpegPCMAudio(pipe_read, pipe=True)
-        self._voice_client.play(self._audio_source)
+        self._voice_client.play(self._audio_source, after=after)
         self._play_state = PlayState.PLAYING
 
     def __del__(self):
