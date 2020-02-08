@@ -29,10 +29,11 @@ class SongQueue:
             self._play_next()
         return self._queue.qsize()
 
-    def get_current_player(self):
+    def get_player(self):
         return self._player
 
     def _on_song_finished(self, error):
+        self._player = None
         if self._notify_song_over:
             self._notify_song_over(self._queue.qsize())
         if not self._queue.empty():

@@ -12,7 +12,7 @@ _explicit_join = False
 
 def on_song_over(queue_length):
     if queue_length == 0 and not _explicit_join:
-        leave()
+        leave_channel(None)
 
 
 _song_queue = SongQueue(on_song_over)
@@ -51,9 +51,9 @@ async def play(ctx, url):
     endpoint = YouTubeEndpoint(url)
     pos = _song_queue.enqueue(endpoint)
     if pos == 0:
-        await ctx.send(f"[▶] {endpoint.get_song_name()}")
+        await ctx.send(f"▶ {endpoint.get_song_name()}")
     else:
-        await ctx.send(f"[{pos}] {endpoint.get_song_name()}")
+        await ctx.send(f"({pos}) {endpoint.get_song_name()}")
 
 
 @bot.command(help="Log out and shut down the bot. This can only be done by admins and is irreversible.")
