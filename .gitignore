@@ -6,3 +6,6 @@ src/.env
 
 # Python stuff
 __pycache__
+
+# PlantUML output
+diagrams/out/

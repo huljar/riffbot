@@ -1,0 +1,32 @@
+@startuml
+class SongQueue {
+    +enqueue(endpoint: Endpoint)
+    +get_player()
+}
+
+abstract class Endpoint {
+    {abstract} +stream_chunks(chunk_size: int) -> Generator[bytes]
+    {abstract} +get_song_description() -> str
+}
+
+class YouTubeEndpoint {
+    +stream_chunks(chunk_size: int) -> Generator[bytes]
+    +get_song_description() -> str
+}
+
+class Player {
+    +pause()
+    +resume()
+    +stop()
+    +get_endpoint() -> Endpoint
+}
+
+SongQueue "1" *-- "n" Endpoint : enqueues >
+SongQueue "1" *-- "1" Player
+SongQueue "1" *-- "1" queue.Queue : wraps >
+Player "1" *-- "1" discord.AudioSource
+Player "1" *-- "1" Endpoint
+discord.VoiceClient -- Player : < uses
+
+Endpoint <|-- YouTubeEndpoint
+@enduml

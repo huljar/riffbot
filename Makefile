@@ -11,6 +11,9 @@ run:
 test:
 	@PYTHONPATH=src python3 -m unittest discover -s tests/unit
 
+uml:
+	@plantuml -o out diagrams/*.uml
+
 help:
 	@echo "Usage:"
 	@echo "  help         Print this help"
@@ -20,5 +23,6 @@ help:
 	@echo "               (Python Language Server)"
 	@echo "  run          Initialize and run the bot"
 	@echo "  test         Run all tests in the tests/ directory"
+	@echo "  uml          Generate UML diagrams with PlantUML"
 
-.PHONY: install install-dev run test help
+.PHONY: install install-dev run test uml help
