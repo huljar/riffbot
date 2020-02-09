@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import typing
 
 from discord.ext import commands
@@ -74,6 +75,18 @@ async def pause(ctx):
     player = _song_queue.get_player()
     player.pause()
     await ctx.send(f"⏸ {player.get_endpoint().get_song_description()}")
+
+
+@bot.command(help="Show the current contents of the queue.")
+async def queue(ctx):
+    songs = _song_queue.get_all()
+    if len(songs) == 0:
+        await ctx.send("No songs are currently enqueued!")
+    else:
+        ret = f"▶ {songs[0].get_song_description()}"
+        ret = functools.reduce(lambda acc, val: acc +
+                               f"\n[{val[0]}] {val[1].get_song_description()}", enumerate(songs[1:]), ret)
+        await ctx.send(ret)
 
 
 @bot.command(help="Log out and shut down the bot. This can only be done by admins and is irreversible.")

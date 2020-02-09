@@ -34,8 +34,15 @@ class SongQueue:
     def get_next(self) -> typing.Optional[Endpoint]:
         if len(self._queue) == 0:
             return None
-
         return self._queue[0]
+
+    def get_enqueued(self) -> typing.List[Endpoint]:
+        return [endpoint for endpoint in self._queue]
+
+    def get_all(self) -> typing.List[Endpoint]:
+        ret = [self._player.get_endpoint()] if self._player is not None else []
+        ret.extend(self.get_enqueued())
+        return ret
 
     def size(self) -> int:
         return len(self._queue)
