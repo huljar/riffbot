@@ -13,8 +13,10 @@ _voice_client = None
 _explicit_join = False
 
 
-def on_song_over(queue_length):
-    if queue_length == 0 and not _explicit_join:
+def on_song_over():
+    if _song_queue.size() > 0:
+        pass  # TODO: post in correct channel which song is playing next
+    elif not _explicit_join:
         asyncio.get_event_loop().run_until_complete(leave_channel(None))
 
 
@@ -47,7 +49,7 @@ async def leave(ctx):
 @bot.command(help="Play the song at the given URL.")
 @commands.guild_only()
 async def play(ctx, url: typing.Optional[str]):
-    global _song_queue, _explicit_join
+    global _explicit_join
     if url is None or url == "":
         # Resume paused song
         player = _song_queue.get_player()
