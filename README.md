@@ -10,6 +10,8 @@ python3 -m venv ../venvs/riffbot
 source ../venvs/riffbot/bin/activate
 # install via make
 make install
+# install required libs
+sudo apt install libopus0 ffmpeg
 ```
 
 To install development tools, such as a Python Language Server, run
