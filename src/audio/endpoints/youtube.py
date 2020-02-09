@@ -11,7 +11,8 @@ class YouTubeEndpoint(Endpoint):
 
     def stream_chunks(self, chunk_size: int) -> Generator[bytes, None, None]:
         stream = self._video.getbestaudio(preftype="m4a")
-        with requests.get(stream.url_https, stream=True) as request:
+        session = requests.Session()
+        with session.get(stream.url_https, stream=True) as request:
             yield from request.iter_content(chunk_size)
 
     def get_song_description(self) -> str:
