@@ -1,5 +1,5 @@
 discord.py
-pafy
+git+https://github.com/mps-youtube/pafy#egg=pafy
 PyNaCl
 python-dotenv
 requests
