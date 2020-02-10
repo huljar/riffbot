@@ -8,7 +8,7 @@ class Endpoint(ABC):
         pass
 
     @abstractmethod
-    def get_chunk_size(self) -> int:
+    def get_preferred_chunk_size(self) -> int:
         pass
 
     @abstractmethod

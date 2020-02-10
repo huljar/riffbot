@@ -6,8 +6,6 @@ import discord
 
 from .endpoint import Endpoint
 
-CHUNK_SIZE = 32 * 1024  # 32 KB
-
 
 class PlayState(Enum):
     PLAYING = 1,
@@ -73,7 +71,7 @@ class Player:
 
 def _downloader(endpoint: Endpoint, pipe_write: int, halt_event: threading.Event):
     try:
-        for chunk in endpoint.stream_chunks(CHUNK_SIZE):
+        for chunk in endpoint.stream_chunks(endpoint.get_preferred_chunk_size()):
             if halt_event.is_set():
                 break
             os.write(pipe_write, chunk)
