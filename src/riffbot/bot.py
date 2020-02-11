@@ -127,6 +127,6 @@ async def leave_channel(ctx, *, send_info=False):
     _text_channel = None
     if _voice_client is not None and _voice_client.is_connected():
         await _voice_client.disconnect()
-        _voice_client = None
         if send_info:
             await ctx.send(f"Disconnected from {_voice_client.channel.name}!")
+        _voice_client = None
