@@ -57,7 +57,7 @@ async def play(ctx, url: typing.Optional[str]):
         player = _song_queue.get_player()
         if player is not None:
             player.resume()
-            await ctx.send(f"▶ {player.get_endpoint().get_song_description()}")
+            await ctx.send(f"▶  {player.get_endpoint().get_song_description()}")
     else:
         if _voice_client is None:
             _explicit_join = False
@@ -65,9 +65,9 @@ async def play(ctx, url: typing.Optional[str]):
         endpoint = YouTubeEndpoint(url)
         pos = _song_queue.enqueue(endpoint)
         if pos == 0:
-            await ctx.send(f"▶ {endpoint.get_song_description()}")
+            await ctx.send(f"▶  {endpoint.get_song_description()}")
         else:
-            await ctx.send(f"[{pos}] {endpoint.get_song_description()}")
+            await ctx.send(f"[{pos}]  {endpoint.get_song_description()}")
 
 
 @bot.command(help="Pause the currently playing song.")
@@ -75,7 +75,7 @@ async def play(ctx, url: typing.Optional[str]):
 async def pause(ctx):
     player = _song_queue.get_player()
     player.pause()
-    await ctx.send(f"⏸ {player.get_endpoint().get_song_description()}")
+    await ctx.send(f"⏸  {player.get_endpoint().get_song_description()}")
 
 
 @bot.command(help="Show the current contents of the queue.")
@@ -84,9 +84,9 @@ async def queue(ctx):
     if len(songs) == 0:
         await ctx.send("No songs are currently enqueued!")
     else:
-        ret = f"▶ {songs[0].get_song_description()}"
+        ret = f"▶  {songs[0].get_song_description()}"
         ret = functools.reduce(lambda acc, val: acc +
-                               f"\n[{val[0]}] {val[1].get_song_description()}", enumerate(songs[1:]), ret)
+                               f"\n[{val[0]+1}]  {val[1].get_song_description()}", enumerate(songs[1:]), ret)
         await ctx.send(ret)
 
 
