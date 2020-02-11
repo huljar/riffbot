@@ -81,5 +81,7 @@ def _downloader(endpoint: Endpoint, pipe_write: int, halt_event: threading.Event
             if halt_event.is_set():
                 break
             os.write(pipe_write, chunk)
+    except BrokenPipeError:
+        pass
     finally:
         os.close(pipe_write)
