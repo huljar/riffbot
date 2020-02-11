@@ -10,7 +10,7 @@ class NotConnectedError(Exception):
 
 
 class SongQueue:
-    def __init__(self, song_over: typing.Callable):
+    def __init__(self, song_over: typing.Callable[[], typing.Awaitable[None]]):
         self._queue = collections.deque()
         self._player = None
         self._notify_song_over = song_over
@@ -50,10 +50,10 @@ class SongQueue:
     def get_player(self):
         return self._player
 
-    def _on_song_finished(self, error):
+    async def _on_song_finished(self, error):
         self._player = None
         if self._notify_song_over:
-            self._notify_song_over()
+            await self._notify_song_over()
         if len(self._queue) > 0:
             self._play_next()
 

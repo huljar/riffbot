@@ -1,4 +1,3 @@
-import asyncio
 import functools
 import typing
 
@@ -11,15 +10,17 @@ from audio.endpoints.youtube import YouTubeEndpoint
 bot = commands.Bot(command_prefix="!")
 
 _voice_client = None
+_text_channel = None
 _explicit_join = False
 
 
-def on_song_over():
+async def on_song_over():
     if _song_queue.size() > 0:
+        if _text_channel is not None:
+            await _text_channel.send(f"▶  {_song_queue.get_next().get_song_description()}")
         pass  # TODO: post in correct channel which song is playing next
     elif not _explicit_join:
-        # asyncio.get_event_loop().run_until_complete(leave_channel(None))
-        pass  # TODO: figure out how this can be run in the main thread
+        await leave_channel(None)
 
 
 _song_queue = SongQueue(on_song_over)
@@ -107,7 +108,8 @@ async def on_command_error(ctx, error):
 
 
 async def join_channel(ctx, *, send_info=False):
-    global _voice_client
+    global _voice_client, _text_channel
+    _text_channel = ctx.message.channel
     voice_channel = ctx.author.voice.channel
     if _voice_client is None:
         _voice_client = await voice_channel.connect()
@@ -121,7 +123,10 @@ async def join_channel(ctx, *, send_info=False):
 
 
 async def leave_channel(ctx, *, send_info=False):
+    global _voice_client, _text_channel
+    _text_channel = None
     if _voice_client is not None and _voice_client.is_connected():
         await _voice_client.disconnect()
+        _voice_client = None
         if send_info:
             await ctx.send(f"Disconnected from {_voice_client.channel.name}!")

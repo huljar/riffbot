@@ -1,6 +1,8 @@
+import asyncio
 from enum import Enum
 import os
 import threading
+import typing
 
 import discord
 
@@ -18,7 +20,7 @@ class PlayerStoppedError(Exception):
 
 
 class Player:
-    def __init__(self, endpoint: Endpoint, voice_client: discord.VoiceClient, after):
+    def __init__(self, endpoint: Endpoint, voice_client: discord.VoiceClient, after: typing.Callable[[Exception], typing.Awaitable[None]]):
         self._endpoint = endpoint
         self._voice_client = voice_client
 
@@ -30,11 +32,15 @@ class Player:
         self._downloader = threading.Thread(target=_downloader, args=(endpoint, pipe_write, self._halt_event))
         self._downloader.start()
 
-        # Set up audio source and start playing
-        def callback(error):
-            os.close(pipe_read)
-            after(error)
+        # Set up callback to execute in the Player's thread when playing finishes
+        # TODO: could voice_client.loop be used instead?
+        event_loop = asyncio.get_event_loop()
 
+        def callback(error: Exception):
+            os.close(pipe_read)
+            asyncio.run_coroutine_threadsafe(after(error), event_loop)
+
+        # Set up audio source and start playing
         self._audio_source = discord.FFmpegPCMAudio(pipe_read, pipe=True)
         self._voice_client.play(self._audio_source, after=callback)
         self._play_state = PlayState.PLAYING
