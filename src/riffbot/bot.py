@@ -18,7 +18,8 @@ def on_song_over():
     if _song_queue.size() > 0:
         pass  # TODO: post in correct channel which song is playing next
     elif not _explicit_join:
-        asyncio.get_event_loop().run_until_complete(leave_channel(None))
+        # asyncio.get_event_loop().run_until_complete(leave_channel(None))
+        pass  # TODO: figure out how this can be run in the main thread
 
 
 _song_queue = SongQueue(on_song_over)
