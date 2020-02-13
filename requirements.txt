@@ -4,3 +4,4 @@ PyNaCl
 python-dotenv
 requests
 youtube-dl
+youtube-search

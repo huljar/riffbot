@@ -49,9 +49,11 @@ async def leave(ctx):
 
 @bot.command(help="Play the song at the given URL.")
 @commands.guild_only()
-async def play(ctx, url: typing.Optional[str]):
+async def play(ctx, *args):
     global _explicit_join
-    if url is None or url == "":
+    # Can't specify a converter directly for a variable number of arguments unfortunately
+    youtube_id = converters.to_youtube_video(args)
+    if youtube_id is None:
         # Resume paused song
         player = _song_queue.get_player()
         if player is not None:
@@ -61,7 +63,7 @@ async def play(ctx, url: typing.Optional[str]):
         if _voice_client is None:
             _explicit_join = False
             await join_channel(ctx)
-        endpoint = YouTubeEndpoint(url)
+        endpoint = YouTubeEndpoint(youtube_id)
         pos = _song_queue.enqueue(endpoint)
         if pos == 0:
             await ctx.send(f"▶  {endpoint.get_song_description()}")
