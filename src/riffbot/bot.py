@@ -4,6 +4,7 @@ import typing
 from discord.ext import commands
 
 from . import checks
+from . import converters
 from audio.song_queue import SongQueue
 from audio.endpoints.youtube import YouTubeEndpoint
 
@@ -74,6 +75,26 @@ async def pause(ctx):
     player = _song_queue.get_player()
     player.pause()
     await ctx.send(f"⏸  {player.get_endpoint().get_song_description()}")
+
+
+@bot.command(help="Seek to an approximate position in the current song.")
+@commands.guild_only()
+async def seek(ctx, position: converters.to_position):
+    # Seeking is not yet supported in the player/endpoints, so cancel early
+    await ctx.send("Seeking is not yet supported, sorry!")
+    return
+
+    if not position:
+        await ctx.send(f"Invalid position, use syntax 2:01 or 1:05:42 or similar.")
+        return
+    player = _song_queue.get_player() if _song_queue else None
+    if player:
+        await ctx.send("Seeking …")
+        (h, m, s) = position
+        try:
+            player.seek(h * 3600 + m * 60 + s)
+        except Exception:  # TODO: replace with specific exception
+            await ctx.send("Position is out of bounds!")
 
 
 @bot.command(help="Show the current contents of the queue.")

@@ -20,7 +20,8 @@ class PlayerStoppedError(Exception):
 
 
 class Player:
-    def __init__(self, endpoint: Endpoint, voice_client: discord.VoiceClient, after: typing.Callable[[Exception], typing.Awaitable[None]]):
+    def __init__(self, endpoint: Endpoint, voice_client: discord.VoiceClient,
+                 after: typing.Callable[[Exception], typing.Awaitable[None]]):
         self._endpoint = endpoint
         self._voice_client = voice_client
 

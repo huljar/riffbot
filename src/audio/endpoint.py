@@ -14,3 +14,12 @@ class Endpoint(ABC):
     @abstractmethod
     def get_song_description(self) -> str:
         pass
+
+    @abstractmethod
+    def get_bit_rate(self) -> int:
+        pass
+
+    @abstractmethod
+    def get_length(self) -> int:
+        """Get the length of the song in seconds"""
+        pass
