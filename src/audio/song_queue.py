@@ -16,8 +16,7 @@ class SongQueue:
         self._notify_song_over = song_over
 
     def __del__(self):
-        if self._player is not None:
-            self._player.stop()
+        self.skip()
 
     def set_voice_client(self, voice_client):
         self._voice_client = voice_client
@@ -31,6 +30,13 @@ class SongQueue:
             self._play_next()
         return len(self._queue)
 
+    def skip(self):
+        if self._player:
+            self._player.stop()
+
+    def get_current(self) -> typing.Optional[Endpoint]:
+        return self._player.get_endpoint() if self._player else None
+
     def get_next(self) -> typing.Optional[Endpoint]:
         if len(self._queue) == 0:
             return None
@@ -40,7 +46,7 @@ class SongQueue:
         return [endpoint for endpoint in self._queue]
 
     def get_all(self) -> typing.List[Endpoint]:
-        ret = [self._player.get_endpoint()] if self._player is not None else []
+        ret = [self._player.get_endpoint()] if self._player else []
         ret.extend(self.get_enqueued())
         return ret
 

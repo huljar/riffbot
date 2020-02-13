@@ -98,6 +98,7 @@ async def seek(ctx, position: converters.to_position):
 
 
 @bot.command(help="Show the current contents of the queue.")
+@commands.guild_only()
 async def queue(ctx):
     songs = _song_queue.get_all() if _song_queue is not None else []
     if len(songs) == 0:
@@ -107,6 +108,16 @@ async def queue(ctx):
         ret = functools.reduce(lambda acc, val: acc +
                                f"\n[{val[0]+1}]  {val[1].get_song_description()}", enumerate(songs[1:]), ret)
         await ctx.send(ret)
+
+
+@bot.command(help="Skip the current song.")
+@commands.guild_only()
+async def skip(ctx):
+    if _song_queue:
+        current = _song_queue.get_current()
+        _song_queue.skip()
+        if current:
+            await ctx.send(f"⏩  {current.get_song_description()}")
 
 
 @bot.command(help="Log out and shut down the bot. This can only be done by admins and is irreversible.")

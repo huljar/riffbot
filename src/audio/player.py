@@ -39,6 +39,7 @@ class Player:
 
         def callback(error: Exception):
             os.close(pipe_read)
+            self._audio_source.cleanup()
             asyncio.run_coroutine_threadsafe(after(error), event_loop)
 
         # Set up audio source and start playing
@@ -70,7 +71,6 @@ class Player:
             self._play_state = PlayState.STOPPED
             self._halt_event.set()
             self._voice_client.stop()
-            self._audio_source.cleanup()
 
     def get_endpoint(self):
         return self._endpoint
@@ -82,6 +82,8 @@ def _downloader(endpoint: Endpoint, pipe_write: int, halt_event: threading.Event
             if halt_event.is_set():
                 break
             os.write(pipe_write, chunk)
+            if halt_event.is_set():
+                break
     except BrokenPipeError:
         pass
     finally:
