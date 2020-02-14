@@ -1,5 +1,4 @@
 import functools
-import typing
 
 from discord.ext import commands
 

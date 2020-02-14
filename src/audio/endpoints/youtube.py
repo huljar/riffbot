@@ -3,16 +3,13 @@ import requests
 from typing import Generator
 import re
 
-from audio.endpoint import Endpoint
+from audio.endpoint import Endpoint, InvalidEndpointError
+
 
 _range_variants = {
     "&range={}-{}": re.compile("^https://.*\\.googlevideo\\.com/videoplayback\\?([^/]+=[^/]*&)*[^/]+=[^/]*$"),
     "range/{}-{}/": re.compile("^https://.*\\.googlevideo\\.com/videoplayback/([^&=?]+/)+$")
 }
-
-
-class InvalidStreamUrlError(Exception):
-    pass
 
 
 class YouTubeEndpoint(Endpoint):
@@ -46,4 +43,4 @@ class YouTubeEndpoint(Endpoint):
         for template, regex in _range_variants.items():
             if regex.match(url) is not None:
                 return template
-        raise InvalidStreamUrlError()
+        raise InvalidEndpointError()

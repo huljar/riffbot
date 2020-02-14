@@ -2,6 +2,10 @@ from abc import ABC, abstractmethod
 from typing import Generator
 
 
+class InvalidEndpointError(Exception):
+    pass
+
+
 class Endpoint(ABC):
     @abstractmethod
     def stream_chunks(self) -> Generator[bytes, None, None]:
