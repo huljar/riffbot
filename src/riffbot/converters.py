@@ -3,7 +3,8 @@ import typing
 
 from youtube_search import YoutubeSearch
 
-_youtube_regex = re.compile("^(https?://)?((www\\.)?youtube\\.com/watch\\?v=|youtu\\.be/)(?P<id>\\w{11})([?&].+)?$")
+_youtube_regex = re.compile(
+    "^(https?://)?((www\\.)?youtube\\.com/watch\\?v=|youtu\\.be/)(?P<id>[\\w\\-]{11})([?&]\\S+)?$")
 _position_regex = re.compile("^(?P<hm>\\d\\d?)(:(?P<m>\\d\\d))?(:(?P<s>\\d\\d))$")
 
 
