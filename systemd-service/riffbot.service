@@ -1,0 +1,8 @@
+[Unit]
+Description=Riffbot - Discord Music Bot
+
+[Service]
+ExecStart={VENV_PATH}/bin/python3 {PROJECT_ROOT}/src/__main__.py
+
+[Install]
+WantedBy=default.target

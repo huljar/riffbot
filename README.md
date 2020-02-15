@@ -10,7 +10,7 @@ sudo apt install python3-dev libopus0 ffmpeg
 # make a virtualenv somewhere and activate it
 python3 -m venv ../venvs/riffbot
 source ../venvs/riffbot/bin/activate
-# install via make
+# install dependencies via make
 make install
 ```
 
@@ -19,7 +19,7 @@ To install development tools, such as a Python Language Server, run
 make install-dev
 ```
 
-# Adding the bot to your server
+## Adding the bot to your server
 
 To run Riffbot, you need to register a bot with your Discord server first and obtain a token. Head over
 [here](https://github.com/reactiflux/discord-irc/wiki/Creating-a-discord-bot-&-getting-a-token) for a great rundown on
@@ -41,6 +41,10 @@ bot has logged on to Discord.
 
 The bot is currently not suitable for multi-server operation – one instance of the bot should only serve one Discord
 guild.
+
+## Run in background as a systemd service
+
+*in progress* `make service VENV=path/to/your/venv` then `systemctl start riffbot`
 
 # License
 
