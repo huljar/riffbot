@@ -46,6 +46,15 @@ async def leave(ctx):
     await leave_channel(ctx, send_info=True)
 
 
+@bot.command(help="Instruct the bot to stay in the channel after all songs have finished playing.")
+@commands.guild_only()
+async def stay(ctx):
+    global _explicit_join
+    if _voice_client is not None:
+        _explicit_join = True
+        await ctx.send("I will now stay in the current voice channel :)")
+
+
 @bot.command(help="Play the song at the given URL.")
 @commands.guild_only()
 async def play(ctx, *args):
