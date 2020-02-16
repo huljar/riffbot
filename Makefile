@@ -2,9 +2,10 @@ RED=\033[0;31m
 NC=\033[0m
 
 PROJECT_ROOT=$(shell readlink -e "$(dir $(firstword $(MAKEFILE_LIST)))")
-SERVICE_SOURCE=${PROJECT_ROOT}/systemd-service/riffbot.service
-SERVICE_TARGET_DIR=~/.config/systemd/user
-SERVICE_TARGET=${SERVICE_TARGET_DIR}/riffbot.service
+SERVICE_SOURCE=${PROJECT_ROOT}/systemd-service/riffbot.service.template
+SERVICE_TARGET_USER=~/.config/systemd/user/riffbot.service
+SERVICE_TARGET_SYSTEM=/etc/systemd/system/riffbot.service
+EUID=$(shell id -u)
 
 install:
 	@pip3 install -U wheel
@@ -25,10 +26,24 @@ uml:
 service:
 	@test -n "${VENV}" || (echo "${RED}VENV not set, please set it to the path of your virtual environment.${NC}" && /bin/false)
 	@readlink -qe "${VENV}" > /dev/null || (echo "${RED}\"${VENV}\" does not exist.${NC}" && /bin/false)
-	@mkdir -p ${SERVICE_TARGET_DIR}
-	@cp ${SERVICE_SOURCE} ${SERVICE_TARGET}
-	@sed -i "s/{VENV_PATH}/$(shell readlink -e "${VENV}" | sed 's_/_\\/_g')/g" ${SERVICE_TARGET}
-	@sed -i "s/{PROJECT_ROOT}/$(shell echo ${PROJECT_ROOT} | sed 's_/_\\/_g')/g" ${SERVICE_TARGET}
+ifeq (${EUID},0)
+	@test -n "${XUSER}" || (echo "${RED}XUSER not set, please set it to the name of the user Riffbot shall run as.${NC}" && /bin/false)
+	@mkdir -p $(dir ${SERVICE_TARGET_SYSTEM})
+	@cp ${SERVICE_SOURCE} ${SERVICE_TARGET_SYSTEM}
+	@chown root:root ${SERVICE_TARGET_SYSTEM}
+	@chmod 644 ${SERVICE_TARGET_SYSTEM}
+	@sed -i "s/{VENV_PATH}/$(shell readlink -e "${VENV}" | sed 's_/_\\/_g')/g" ${SERVICE_TARGET_SYSTEM}
+	@sed -i "s/{PROJECT_ROOT}/$(shell echo ${PROJECT_ROOT} | sed 's_/_\\/_g')/g" ${SERVICE_TARGET_SYSTEM}
+	@sed -i "s/{USER_DIRECTIVE}/User=${XUSER}\\n/g" ${SERVICE_TARGET_SYSTEM}
+else
+	@mkdir -p $(dir ${SERVICE_TARGET_USER})
+	@cp ${SERVICE_SOURCE} ${SERVICE_TARGET_USER}
+	@chown ${EUID}:${EUID} ${SERVICE_TARGET_USER}
+	@chmod 644 ${SERVICE_TARGET_USER}
+	@sed -i "s/{VENV_PATH}/$(shell readlink -e "${VENV}" | sed 's_/_\\/_g')/g" ${SERVICE_TARGET_USER}
+	@sed -i "s/{PROJECT_ROOT}/$(shell echo ${PROJECT_ROOT} | sed 's_/_\\/_g')/g" ${SERVICE_TARGET_USER}
+	@sed -i "s/{USER_DIRECTIVE}//g" ${SERVICE_TARGET_USER}
+endif
 
 help:
 	@echo "Usage:"
@@ -40,6 +55,8 @@ help:
 	@echo "  run          Initialize and run the bot"
 	@echo "  test         Run all tests in the tests/ directory"
 	@echo "  uml          Generate UML diagrams with PlantUML"
-	@echo "  service      Install systemd user service"
+	@echo "  service      Install systemd service for Riffbot"
+	@echo "                 as normal user: install to $(dir ${SERVICE_TARGET_USER})"
+	@echo "                 as root: install to $(dir ${SERVICE_TARGET_SYSTEM})"
 
 .PHONY: install install-dev run test uml service help
