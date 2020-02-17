@@ -1,8 +1,11 @@
 import collections
+import logging
 import typing
 
 from audio.endpoint import Endpoint
 from audio.player import Player
+
+_logger = logging.getLogger("riffbot." + __name__)
 
 
 class NotConnectedError(Exception):
@@ -11,17 +14,20 @@ class NotConnectedError(Exception):
 
 class SongQueue:
     def __init__(self, song_over: typing.Callable[[], typing.Awaitable[None]]):
+        _logger.debug(f"Initializing with song_over={song_over}")
         self._queue = collections.deque()
         self._player = None
         self._notify_song_over = song_over
 
     def __del__(self):
+        _logger.debug("Destroying")
         self.skip()
 
     def set_voice_client(self, voice_client):
         self._voice_client = voice_client
 
     def enqueue(self, endpoint: Endpoint):
+        _logger.debug(f"Enqueueing \"{endpoint.get_song_description()}\"")
         if self._voice_client is None:
             raise NotConnectedError()
 
@@ -31,6 +37,7 @@ class SongQueue:
         return len(self._queue)
 
     def skip(self):
+        _logger.debug("Skipping")
         if self._player:
             self._player.stop()
 
@@ -57,6 +64,9 @@ class SongQueue:
         return self._player
 
     async def _on_song_finished(self, error):
+        _logger.debug(f"Song finished playing")
+        if error is not None:
+            _logger.error(f"Error occurred during song: {error}")
         self._player = None
         if self._notify_song_over:
             await self._notify_song_over()
@@ -64,5 +74,6 @@ class SongQueue:
             self._play_next()
 
     def _play_next(self):
+        _logger.debug("Playing next song")
         endpoint = self._queue.popleft()
         self._player = Player(endpoint, self._voice_client, self._on_song_finished)
