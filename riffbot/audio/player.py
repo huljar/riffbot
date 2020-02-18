@@ -46,6 +46,7 @@ class Player:
             if error is not None:
                 _logger.error(f"Error occurred during playback: {error}")
             os.close(pipe_read)
+            self._voice_client.stop()
             self._audio_source.cleanup()
             asyncio.run_coroutine_threadsafe(after(error), event_loop)
 
