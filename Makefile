@@ -18,7 +18,7 @@ run:
 	@python3 -m riffbot
 
 test:
-	@PYTHONPATH=src python3 -m unittest discover -s tests/unit
+	@PYTHONPATH=riffbot python3 -m unittest discover -s tests/unit
 
 uml:
 	@plantuml -o out diagrams/*.uml
