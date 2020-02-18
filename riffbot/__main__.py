@@ -2,7 +2,9 @@ import argparse
 from enum import Enum
 import logging
 import os
+
 from dotenv import load_dotenv
+
 from riffbot.bot import bot
 
 
@@ -24,7 +26,7 @@ def main():
 
     # Set up logging
     level = LogLevel[args.log[0]].value
-    logger = logging.getLogger("riffbot")
+    logger = logging.getLogger(__package__)
     handler = logging.StreamHandler()
     formatter = logging.Formatter("%(asctime)s [%(name)s] (%(levelname)s) %(message)s", "%m/%d/%Y %H:%M:%S")
 

@@ -2,10 +2,10 @@ import collections
 import logging
 import typing
 
-from audio.endpoint import Endpoint
-from audio.player import Player
+from .endpoint import Endpoint
+from .player import Player
 
-_logger = logging.getLogger("riffbot." + __name__)
+_logger = logging.getLogger(__name__)
 
 
 class NotConnectedError(Exception):
@@ -14,7 +14,7 @@ class NotConnectedError(Exception):
 
 class SongQueue:
     def __init__(self, song_over: typing.Callable[[], typing.Awaitable[None]]):
-        _logger.debug(f"Initializing with song_over={song_over}")
+        _logger.debug(f"Initializing with song_over={song_over.__name__}")
         self._queue = collections.deque()
         self._player = None
         self._notify_song_over = song_over

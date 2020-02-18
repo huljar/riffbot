@@ -25,7 +25,7 @@ class PlayerStoppedError(Exception):
 class Player:
     def __init__(self, endpoint: Endpoint, voice_client: discord.VoiceClient,
                  after: typing.Callable[[Exception], typing.Awaitable[None]]):
-        _logger.debug(f"Initializing with after={after}, \"{endpoint.get_song_description()}\"")
+        _logger.debug(f"Initializing with after={after.__name__}, \"{endpoint.get_song_description()}\"")
         self._endpoint = endpoint
         self._voice_client = voice_client
 

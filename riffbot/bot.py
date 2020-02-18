@@ -3,12 +3,12 @@ import logging
 
 from discord.ext import commands
 
-from . import checks
-from . import converters
-from audio.song_queue import SongQueue
-from audio.endpoints.youtube import YouTubeEndpoint
+from riffbot.utils import checks
+from riffbot.utils import converters
+from riffbot.audio.song_queue import SongQueue
+from riffbot.audio.endpoints.youtube import YouTubeEndpoint
 
-_logger = logging.getLogger("riffbot." + __name__)
+_logger = logging.getLogger(__name__)
 
 bot = commands.Bot(command_prefix="!")
 

@@ -15,7 +15,7 @@ install-dev:
 	@pip3 install -U -r requirements-dev.txt
 
 run:
-	@python3 src/__main__.py
+	@python3 -m riffbot
 
 test:
 	@PYTHONPATH=src python3 -m unittest discover -s tests/unit

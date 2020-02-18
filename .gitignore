@@ -1,5 +1,5 @@
 # The OAuth token
-src/.env
+riffbot/.env
 
 # IDE generated files
 *.sublime-workspace
