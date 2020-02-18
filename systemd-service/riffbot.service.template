@@ -2,7 +2,8 @@
 Description=Riffbot - Discord Music Bot
 
 [Service]
-ExecStart={VENV_PATH}/bin/python3 -m {PROJECT_ROOT}/riffbot
+WorkingDirectory={PROJECT_ROOT}
+ExecStart={VENV_PATH}/bin/python3 -m riffbot
 Environment=PYTHONUNBUFFERED=1
 Restart=on-failure
 {USER_DIRECTIVE}
