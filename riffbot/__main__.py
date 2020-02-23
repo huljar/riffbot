@@ -16,6 +16,10 @@ class LogLevel(Enum):
     CRITICAL = logging.CRITICAL
 
 
+class TokenNotFoundError(Exception):
+    pass
+
+
 def main():
     # Parse command line arguments
     cmdparser = argparse.ArgumentParser(description="Riffbot - Discord Music Bot")
@@ -39,6 +43,8 @@ def main():
     load_dotenv()
     # Load the discord authorization token from DISCORD_TOKEN environment variable
     token = os.getenv("DISCORD_TOKEN")
+    if not token:
+        raise TokenNotFoundError()
 
     # Run the bot
     bot.run(token)
