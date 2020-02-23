@@ -9,7 +9,7 @@ import discord
 
 from riffbot.endpoints.endpoint import Endpoint
 
-_logger = logging.getLogger("riffbot." + __name__)
+_logger = logging.getLogger(__name__)
 
 
 class PlayState(Enum):

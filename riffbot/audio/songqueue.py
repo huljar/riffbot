@@ -1,3 +1,4 @@
+import asyncio
 import collections
 import logging
 import typing
@@ -13,15 +14,26 @@ class NotConnectedError(Exception):
 
 
 class SongQueue:
-    def __init__(self, song_over: typing.Callable[[], typing.Awaitable[None]]):
-        _logger.debug(f"Initializing with song_over={song_over.__name__}")
+    def __init__(self):
+        _logger.debug("Initializing")
         self._queue = collections.deque()
         self._player = None
-        self._notify_song_over = song_over
+        self._song_over_handlers = []
 
     def __del__(self):
         _logger.debug("Destroying")
         self.skip()
+
+    def attach_song_over(self, handler: typing.Callable[[], typing.Awaitable[None]]):
+        _logger.debug("Attaching song over handler")
+        self._song_over_handlers.append(handler)
+
+    def detach_song_over(self, handler: typing.Callable[[], typing.Awaitable[None]]):
+        _logger.debug("Detaching song over handler")
+        try:
+            self._song_over_handlers.remove(handler)
+        except ValueError:
+            _logger.debug("Detach failed, handler is not attached")
 
     def set_voice_client(self, voice_client):
         self._voice_client = voice_client
@@ -68,8 +80,7 @@ class SongQueue:
         if error is not None:
             _logger.error(f"Error occurred during song: {error}")
         self._player = None
-        if self._notify_song_over:
-            await self._notify_song_over()
+        await asyncio.gather(*[handler() for handler in self._song_over_handlers])
         if len(self._queue) > 0:
             self._play_next()
 

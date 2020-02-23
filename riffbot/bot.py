@@ -164,8 +164,9 @@ async def join_channel(ctx, *, send_info=False):
     if _voice_client is None:
         _logger.debug(f"Joining channel {voice_channel.name}")
         _voice_client = await voice_channel.connect()
-        _song_queue = SongQueue(on_song_over)
+        _song_queue = SongQueue()
         _song_queue.set_voice_client(_voice_client)
+        _song_queue.attach_song_over(on_song_over)
         if send_info:
             await ctx.send(f"Connected to {voice_channel.name}!")
     elif voice_channel != _voice_client.channel:
