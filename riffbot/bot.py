@@ -12,18 +12,18 @@ _logger = logging.getLogger(__name__)
 
 bot = commands.Bot(command_prefix="!")
 
-_voice_client = None
 _song_queue = None
 _text_channel = None
 _explicit_join = False
 
 
-async def on_song_over():
+async def on_song_over(ctx):
+    _logger.debug("Song over handler called")
     if _song_queue.size() > 0:
         if _text_channel is not None:
             await _text_channel.send(f"▶  {_song_queue.get_next().get_song_description()}")
     elif not _explicit_join:
-        await leave_channel(None)
+        await leave_channel(ctx)
 
 
 @bot.event
@@ -56,7 +56,7 @@ async def leave(ctx):
 async def stay(ctx):
     global _explicit_join
     _logger.info(f"Received command \"stay\" from {ctx.author.name}")
-    if _voice_client is not None:
+    if ctx.voice_client is not None:
         _explicit_join = True
         await ctx.send("I will now stay in the current voice channel :)")
 
@@ -75,7 +75,7 @@ async def play(ctx, *args):
             player.resume()
             await ctx.send(f"▶  {player.get_endpoint().get_song_description()}")
     else:
-        if _voice_client is None:
+        if ctx.voice_client is None:
             _explicit_join = False
             await join_channel(ctx)
         endpoint = YouTubeEndpoint(youtube_id)
@@ -158,31 +158,30 @@ async def on_command_error(ctx, error):
 
 
 async def join_channel(ctx, *, send_info=False):
-    global _voice_client, _text_channel, _song_queue
+    global _text_channel, _song_queue
     _text_channel = ctx.message.channel
     voice_channel = ctx.author.voice.channel
-    if _voice_client is None:
+    if ctx.voice_client is None:
         _logger.debug(f"Joining channel {voice_channel.name}")
-        _voice_client = await voice_channel.connect()
+        voice_client = await voice_channel.connect()
         _song_queue = SongQueue()
-        _song_queue.set_voice_client(_voice_client)
-        _song_queue.attach_song_over(on_song_over)
+        _song_queue.set_voice_client(voice_client)
+        _song_queue.attach_song_over(functools.partial(on_song_over, ctx))
         if send_info:
             await ctx.send(f"Connected to {voice_channel.name}!")
-    elif voice_channel != _voice_client.channel:
+    elif voice_channel != ctx.voice_client.channel:
         _logger.debug(f"Moving to channel {voice_channel.name}")
-        await _voice_client.move_to(voice_channel)
+        await ctx.voice_client.move_to(voice_channel)
         if send_info:
             await ctx.send(f"Connected to {voice_channel.name}!")
 
 
 async def leave_channel(ctx, *, send_info=False):
-    global _voice_client, _text_channel, _song_queue
+    global _text_channel, _song_queue
     _text_channel = None
-    if _voice_client is not None and _voice_client.is_connected():
-        _logger.debug(f"Leaving channel {_voice_client.channel.name}")
+    if ctx.voice_client and ctx.voice_client.is_connected():
+        _logger.debug(f"Leaving channel {ctx.voice_client.channel.name}")
         _song_queue = None
-        await _voice_client.disconnect()
+        await ctx.voice_client.disconnect()
         if send_info:
-            await ctx.send(f"Disconnected from {_voice_client.channel.name}!")
-        _voice_client = None
+            await ctx.send(f"Disconnected from {ctx.voice_client.channel.name}!")
