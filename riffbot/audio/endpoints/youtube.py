@@ -15,15 +15,25 @@ _range_variants = {
 class YouTubeEndpoint(Endpoint):
     def __init__(self, url: str):
         self._video = pafy.new(url)
+        self._initialized = False
+
+    def initialize(self):
         self._stream = self._video.getbestaudio(preftype="m4a")
+        self._initialized = True
+
+    def is_initialized(self):
+        return self._initialized
 
     def stream_chunks(self, chunk_size: int) -> Generator[bytes, None, None]:
+        if not self.is_initialized():
+            self.initialize()
+
         url = self._stream.url_https
         template = self._get_url_variant(url)
         file_size = self._stream.get_filesize()
         with requests.Session() as session:
             for i in range(0, file_size, chunk_size):
-                chunk_url = url + template.format(i, min(i+chunk_size-1, file_size-1))
+                chunk_url = url + template.format(i, min(i + chunk_size - 1, file_size - 1))
                 response = session.get(chunk_url)
                 yield response.content
 

@@ -35,6 +35,7 @@ ifeq (${EUID},0)
 	@sed -i "s/{VENV_PATH}/$(shell readlink -e "${VENV}" | sed 's_/_\\/_g')/g" ${SERVICE_TARGET_SYSTEM}
 	@sed -i "s/{PROJECT_ROOT}/$(shell echo ${PROJECT_ROOT} | sed 's_/_\\/_g')/g" ${SERVICE_TARGET_SYSTEM}
 	@sed -i "s/{USER_DIRECTIVE}/User=${XUSER}\\n/g" ${SERVICE_TARGET_SYSTEM}
+	@echo "Successfully installed system service to ${SERVICE_TARGET_SYSTEM}"
 else
 	@mkdir -p $(dir ${SERVICE_TARGET_USER})
 	@cp ${SERVICE_SOURCE} ${SERVICE_TARGET_USER}
@@ -43,6 +44,7 @@ else
 	@sed -i "s/{VENV_PATH}/$(shell readlink -e "${VENV}" | sed 's_/_\\/_g')/g" ${SERVICE_TARGET_USER}
 	@sed -i "s/{PROJECT_ROOT}/$(shell echo ${PROJECT_ROOT} | sed 's_/_\\/_g')/g" ${SERVICE_TARGET_USER}
 	@sed -i "s/{USER_DIRECTIVE}//g" ${SERVICE_TARGET_USER}
+	@echo "Successfully installed user service to ${SERVICE_TARGET_USER}"
 endif
 
 help:

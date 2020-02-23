@@ -8,6 +8,14 @@ class InvalidEndpointError(Exception):
 
 class Endpoint(ABC):
     @abstractmethod
+    def initialize(self):
+        pass
+
+    @abstractmethod
+    def is_initialized(self) -> bool:
+        pass
+
+    @abstractmethod
     def stream_chunks(self) -> Generator[bytes, None, None]:
         pass
 
