@@ -3,7 +3,7 @@ import requests
 from typing import Generator
 import re
 
-from ..endpoint import Endpoint, InvalidEndpointError
+from .endpoint import Endpoint, InvalidEndpointError
 
 
 _range_variants = {

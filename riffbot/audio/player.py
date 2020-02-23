@@ -7,7 +7,7 @@ import typing
 
 import discord
 
-from .endpoint import Endpoint
+from riffbot.endpoints.endpoint import Endpoint
 
 _logger = logging.getLogger("riffbot." + __name__)
 

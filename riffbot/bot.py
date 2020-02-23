@@ -5,8 +5,8 @@ from discord.ext import commands
 
 from riffbot.utils import checks
 from riffbot.utils import converters
-from riffbot.audio.song_queue import SongQueue
-from riffbot.audio.endpoints.youtube import YouTubeEndpoint
+from riffbot.audio.songqueue import SongQueue
+from riffbot.endpoints.youtube import YouTubeEndpoint
 
 _logger = logging.getLogger(__name__)
 

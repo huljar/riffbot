@@ -2,7 +2,7 @@ import collections
 import logging
 import typing
 
-from .endpoint import Endpoint
+from riffbot.endpoints.endpoint import Endpoint
 from .player import Player
 
 _logger = logging.getLogger(__name__)
