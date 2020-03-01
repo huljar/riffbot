@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import List, Optional, Tuple, Union
 
@@ -20,6 +21,13 @@ def to_youtube_videos(args: List[str]) -> Optional[List[Union[str, pafy.pafy.Paf
         match = _youtube_playlist_regex.match(args[0])
         if match:
             playlist = pafy.get_playlist(match.group("list"))
+            # For some reason unbeknownst to be, pafy.get_playlist attaches a handler to the root logger, causing all
+            # subsequent log calls to be run through this handler in addition to the intended ones (effectively
+            # duplicating all log entries on the console). Thus, we clear all root handlers here.
+            root_logger = logging.getLogger()
+            for root_handler in root_logger.handlers:
+                root_logger.removeHandler(root_handler)
+
             return list(map(lambda entry: entry["pafy"], playlist["items"]))
 
         # If it's not a playlist, try single video
