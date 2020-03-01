@@ -4,7 +4,6 @@ import logging
 from typing import Optional
 
 from blinker import signal
-import discord
 from discord.ext import commands
 
 from riffbot.utils import checks
@@ -18,7 +17,6 @@ _logger = logging.getLogger(__name__)
 bot = commands.Bot(command_prefix="!")
 
 _player: Optional[Player] = None
-_text_channel: Optional[discord.TextChannel] = None
 _explicit_join = False
 
 
@@ -173,8 +171,7 @@ async def on_command_error(ctx, error):
 
 
 async def join_channel(ctx, *, send_info=False):
-    global _text_channel, _player
-    _text_channel = ctx.message.channel
+    global _player
     voice_channel = ctx.author.voice.channel
     if ctx.voice_client is None:
         _logger.debug(f"Joining channel {voice_channel.name}")
@@ -192,8 +189,7 @@ async def join_channel(ctx, *, send_info=False):
 
 
 async def leave_channel(ctx, *, send_info=False):
-    global _text_channel, _player
-    _text_channel = None
+    global _player
     if ctx.voice_client and ctx.voice_client.is_connected():
         _logger.debug(f"Leaving channel {ctx.voice_client.channel.name}")
         _player = None

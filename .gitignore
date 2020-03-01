@@ -9,3 +9,6 @@ __pycache__
 
 # PlantUML output
 diagrams/out/
+
+# Pyre files
+.pyre/

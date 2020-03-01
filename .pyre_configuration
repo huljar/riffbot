@@ -1,0 +1,9 @@
+{
+  "source_directories": [
+    "riffbot",
+    "tests"
+  ],
+  "search_path": [
+    "riffbot"
+  ]
+}

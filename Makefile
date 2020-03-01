@@ -20,6 +20,9 @@ run:
 test:
 	@PYTHONPATH=riffbot python3 -m unittest discover -s tests/unit
 
+typecheck:
+	@pyre --preserve-pythonpath check
+
 uml:
 	@plantuml -o out diagrams/*.uml
 
@@ -56,9 +59,10 @@ help:
 	@echo "               (Python Language Server)"
 	@echo "  run          Initialize and run the bot"
 	@echo "  test         Run all tests in the tests/ directory"
+	@echo "  typecheck    Run the static type checker (pyre)"
 	@echo "  uml          Generate UML diagrams with PlantUML"
 	@echo "  service      Install systemd service for Riffbot"
 	@echo "                 as normal user: install to $(dir ${SERVICE_TARGET_USER})"
 	@echo "                 as root: install to $(dir ${SERVICE_TARGET_SYSTEM})"
 
-.PHONY: install install-dev run test uml service help
+.PHONY: install install-dev run test typecheck uml service help
