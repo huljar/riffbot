@@ -1,6 +1,6 @@
 import pafy
 import requests
-from typing import Generator
+from typing import Generator, Union
 import re
 
 from .endpoint import Endpoint, InvalidEndpointError
@@ -13,8 +13,8 @@ _range_variants = {
 
 
 class YouTubeEndpoint(Endpoint):
-    def __init__(self, url: str):
-        self._video = pafy.new(url)
+    def __init__(self, url_or_pafy: Union[str, pafy.pafy.Pafy]):
+        self._video = url_or_pafy if isinstance(url_or_pafy, pafy.pafy.Pafy) else pafy.new(url_or_pafy)
         self._initialized = False
 
     def initialize(self):
@@ -44,6 +44,9 @@ class YouTubeEndpoint(Endpoint):
         return self._video.title
 
     def get_bit_rate(self) -> int:
+        if not self.is_initialized():
+            self.initialize()
+
         return self._stream.rawbitrate
 
     def get_length(self) -> int:

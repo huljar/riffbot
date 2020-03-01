@@ -1,6 +1,6 @@
 import collections
 import logging
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from riffbot.endpoints.endpoint import Endpoint
 
@@ -15,7 +15,9 @@ class SongQueue:
     def __del__(self):
         _logger.debug("Destroying")
 
-    def enqueue(self, *endpoints: Endpoint):
+    def enqueue(self, endpoints: Union[Endpoint, List[Endpoint]]):
+        if isinstance(endpoints, Endpoint):
+            endpoints = [endpoints]
         _logger.debug(f"Enqueueing {len(endpoints)} songs")
         self._queue.extend(endpoints)
 

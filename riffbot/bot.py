@@ -80,8 +80,8 @@ async def play(ctx, *args):
     global _explicit_join
     _logger.info(f"Received command \"{' '.join(['play', *args])}\" from {ctx.author.name}")
     # Can't specify a converter directly for a variable number of arguments unfortunately
-    youtube_id = converters.to_youtube_video(args)
-    if youtube_id is None:
+    videos = converters.to_youtube_videos(args)
+    if videos is None:
         # Resume paused song
         if _player:
             _player.play()
@@ -92,13 +92,13 @@ async def play(ctx, *args):
         if ctx.voice_client is None:
             _explicit_join = False
             await join_channel(ctx)
-        endpoint = YouTubeEndpoint(youtube_id)
+        endpoints = [YouTubeEndpoint(video) for video in videos]
         song_queue = _player.get_queue()
-        song_queue.enqueue(endpoint)
+        song_queue.enqueue(endpoints)
         if not _player.get_current():
             _player.play()
         if song_queue.size() > 0:
-            await ctx.send(f"[{song_queue.size()}]  {endpoint.get_song_description()}")
+            await ctx.send(f"[{song_queue.size()}]  {endpoints[0].get_song_description()}")
 
 
 @bot.command(help="Pause the currently playing song.")
