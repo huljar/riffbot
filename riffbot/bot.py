@@ -10,6 +10,7 @@ from discord.ext import commands
 from riffbot.utils import checks
 from riffbot.utils import converters
 from riffbot.audio.player import Player
+from riffbot.endpoints.endpoint import Endpoint
 from riffbot.endpoints.youtube import YouTubeEndpoint
 
 _logger = logging.getLogger(__name__)
@@ -21,16 +22,22 @@ _text_channel: Optional[discord.TextChannel] = None
 _explicit_join = False
 
 
-def on_song_over(ctx, sender: Player):
-    _logger.debug("Song over handler called")
+def _on_song_start(ctx: commands.Context, sender: Player, song: Endpoint):
+    _logger.debug("Song start handler called")
 
     async def exec():
-        next_song = sender.get_current()
-        if next_song:
-            if _text_channel is not None:
-                await _text_channel.send(f"▶  {next_song.get_song_description()}")
-        elif not _explicit_join:
+        await ctx.send(f"▶  {song.get_song_description()}")
+
+    asyncio.ensure_future(exec())
+
+
+def _on_song_stop(ctx: commands.Context, sender: Player, is_last: bool):
+    _logger.debug("Song stop handler called")
+
+    async def exec():
+        if is_last and not _explicit_join:
             await leave_channel(ctx)
+
     asyncio.ensure_future(exec())
 
 
@@ -92,9 +99,7 @@ async def play(ctx, *args):
         song_queue.enqueue(endpoint)
         if not _player.get_current():
             _player.play()
-        if song_queue.size() == 0:
-            await ctx.send(f"▶  {endpoint.get_song_description()}")
-        else:
+        if song_queue.size() > 0:
             await ctx.send(f"[{song_queue.size()}]  {endpoint.get_song_description()}")
 
 
@@ -175,7 +180,8 @@ async def join_channel(ctx, *, send_info=False):
         _logger.debug(f"Joining channel {voice_channel.name}")
         voice_client = await voice_channel.connect()
         _player = Player(voice_client)
-        signal("player_song_over").connect(functools.partial(on_song_over, ctx), sender=_player, weak=False)
+        signal("player_song_start").connect(functools.partial(_on_song_start, ctx), sender=_player, weak=False)
+        signal("player_song_stop").connect(functools.partial(_on_song_stop, ctx), sender=_player, weak=False)
         if send_info:
             await ctx.send(f"Connected to {voice_channel.name}!")
     elif voice_channel != ctx.voice_client.channel:

@@ -61,6 +61,7 @@ class Player:
         downloader_thread = threading.Thread(target=_downloader, args=(endpoint, pipe_write, halt_event))
         downloader_thread.start()
 
+        # Set up audio source
         _logger.debug("Setting up audio source")
         audio_source = discord.FFmpegPCMAudio(pipe_read, pipe=True)
 
@@ -82,7 +83,10 @@ class Player:
             # Dispatch callback in main thread
             asyncio.run_coroutine_threadsafe(self._on_song_over(), event_loop)
 
-        # Set up audio source and start playing
+        # Emit event that a song is starting
+        signal("player_song_start").send(self, song=self.get_current())
+
+        # Start playing
         self._voice_client.play(audio_source, after=callback)
         _logger.debug("Playback initialized")
 
@@ -90,7 +94,7 @@ class Player:
         _logger.debug("Song is over")
 
         # Emit event that a song finished
-        signal("player_song_over").send(self)
+        signal("player_song_stop").send(self, is_last=(self._song_queue.size() == 0))
 
         # Play next song if there is one in the queue
         if self._song_queue.size() > 0:
