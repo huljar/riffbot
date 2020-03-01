@@ -19,6 +19,7 @@ class Player:
         self._voice_client = voice_client
         self._song_queue = SongQueue()
         self._current = None
+        self._stop_after_current = False
 
     def __del__(self):
         _logger.debug("Destroying")
@@ -41,6 +42,12 @@ class Player:
     def stop(self):
         if self._voice_client.is_playing() or self._voice_client.is_paused():
             _logger.debug("Stopping playback")
+            self._stop_after_current = True
+            self._voice_client.stop()
+
+    def skip(self):
+        if self._voice_client.is_playing() or self._voice_client.is_paused():
+            _logger.debug("Skipping song")
             self._voice_client.stop()
 
     def get_current(self) -> Optional[Endpoint]:
@@ -97,7 +104,9 @@ class Player:
         signal("player_song_stop").send(self, is_last=(self._song_queue.size() == 0))
 
         # Play next song if there is one in the queue
-        if self._song_queue.size() > 0:
+        if self._stop_after_current:
+            self._stop_after_current = False
+        elif self._song_queue.size() > 0:
             _logger.debug("Playing next song in queue")
             self._init_playback(self._song_queue.get_next())
 

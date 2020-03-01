@@ -1,3 +1,4 @@
+import logging
 import pafy
 import requests
 from typing import Generator, Union
@@ -5,6 +6,7 @@ import re
 
 from .endpoint import Endpoint, InvalidEndpointError
 
+_logger = logging.getLogger(__name__)
 
 _range_variants = {
     "&range={}-{}": re.compile("^https://.*\\.googlevideo\\.com/videoplayback\\?([^/]+=[^/]*&)*[^/]+=[^/]*$"),
@@ -14,7 +16,8 @@ _range_variants = {
 
 class YouTubeEndpoint(Endpoint):
     def __init__(self, url_or_pafy: Union[str, pafy.pafy.Pafy]):
-        self._video = url_or_pafy if isinstance(url_or_pafy, pafy.pafy.Pafy) else pafy.new(url_or_pafy)
+        self._video = pafy.new(url_or_pafy) if type(url_or_pafy) is str else url_or_pafy
+        _logger.debug(f"Constructing: {self._video.title}")
         self._initialized = False
 
     def initialize(self):

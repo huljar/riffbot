@@ -152,7 +152,7 @@ async def skip(ctx):
         current = _player.get_current()
         if current:
             await ctx.send(f"⏩  {current.get_song_description()}")
-            _player.stop()
+            _player.skip()
 
 
 @bot.command(help="Log out and shut down the bot. This can only be done by admins and is irreversible.")
@@ -165,9 +165,10 @@ async def shutdown(ctx):
 
 
 @bot.event
-async def on_command_error(ctx, error):
+async def on_command_error(ctx, error: Exception):
     _logger.error(f"Exception occurred during command: {error}")
     await ctx.send(f"Error: {error}")
+    raise error
 
 
 async def join_channel(ctx, *, send_info=False):
@@ -191,8 +192,10 @@ async def join_channel(ctx, *, send_info=False):
 async def leave_channel(ctx, *, send_info=False):
     global _player
     if ctx.voice_client and ctx.voice_client.is_connected():
-        _logger.debug(f"Leaving channel {ctx.voice_client.channel.name}")
+        voice_channel = ctx.voice_client.channel.name
+        _logger.debug(f"Leaving channel {voice_channel}")
+        _player.stop()
         _player = None
         await ctx.voice_client.disconnect()
         if send_info:
-            await ctx.send(f"Disconnected from {ctx.voice_client.channel.name}!")
+            await ctx.send(f"Disconnected from {voice_channel}!")
