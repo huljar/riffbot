@@ -1,42 +1,68 @@
 import asyncio
-from enum import Enum
 import logging
 import os
 import threading
-import typing
+from typing import Optional
 
+from blinker import signal
 import discord
 
 from riffbot.endpoints.endpoint import Endpoint
+from .songqueue import SongQueue
 
 _logger = logging.getLogger(__name__)
 
 
-class PlayState(Enum):
-    PLAYING = 1
-    PAUSED = 2
-    STOPPED = 3
-
-
-class PlayerStoppedError(Exception):
-    pass
-
-
 class Player:
-    def __init__(self, endpoint: Endpoint, voice_client: discord.VoiceClient,
-                 after: typing.Callable[[Exception], typing.Awaitable[None]]):
-        _logger.debug(f"Initializing with after={after.__name__}, \"{endpoint.get_song_description()}\"")
-        self._endpoint = endpoint
+    def __init__(self, voice_client: discord.VoiceClient):
+        _logger.debug(f"Initializing")
         self._voice_client = voice_client
+        self._song_queue = SongQueue()
+        self._current = None
+
+    def __del__(self):
+        _logger.debug("Destroying")
+        self.stop()
+
+    def play(self):
+        if self._voice_client.is_paused():
+            _logger.debug("Resuming playback")
+            self._voice_client.resume()
+        elif not self._voice_client.is_playing():
+            _logger.debug("Starting playback")
+            if self._song_queue.size() > 0:
+                self._init_playback(self._song_queue.get_next())
+
+    def pause(self):
+        if self._voice_client.is_playing():
+            _logger.debug("Pausing playback")
+            self._voice_client.pause()
+
+    def stop(self):
+        if self._voice_client.is_playing() or self._voice_client.is_paused():
+            _logger.debug("Stopping playback")
+            self._voice_client.stop()
+
+    def get_current(self) -> Optional[Endpoint]:
+        return self._current
+
+    def get_queue(self) -> SongQueue:
+        return self._song_queue
+
+    def _init_playback(self, endpoint: Endpoint):
+        self._current = endpoint
 
         # Create pipe for ffmpeg
         pipe_read, pipe_write = os.pipe()
 
         # Create and start thread that loads chunks and fills the pipe
         _logger.debug("Preparing thread for downloader")
-        self._halt_event = threading.Event()
-        self._downloader = threading.Thread(target=_downloader, args=(endpoint, pipe_write, self._halt_event))
-        self._downloader.start()
+        halt_event = threading.Event()
+        downloader_thread = threading.Thread(target=_downloader, args=(endpoint, pipe_write, halt_event))
+        downloader_thread.start()
+
+        _logger.debug("Setting up audio source")
+        audio_source = discord.FFmpegPCMAudio(pipe_read, pipe=True)
 
         # Set up callback to execute in the Player's thread when playing finishes
         event_loop = asyncio.get_event_loop()
@@ -45,52 +71,35 @@ class Player:
             _logger.debug(f"Audio source exhausted")
             if error is not None:
                 _logger.error(f"Error occurred during playback: {error}")
+
+            # Clean up resources
+            self._current = None
+            halt_event.set()
             os.close(pipe_read)
             self._voice_client.stop()
-            self._audio_source.cleanup()
-            asyncio.run_coroutine_threadsafe(after(error), event_loop)
+            audio_source.cleanup()
+
+            # Dispatch callback in main thread
+            asyncio.run_coroutine_threadsafe(self._on_song_over(), event_loop)
 
         # Set up audio source and start playing
-        _logger.debug("Setting up audio source")
-        self._audio_source = discord.FFmpegPCMAudio(pipe_read, pipe=True)
-        self._voice_client.play(self._audio_source, after=callback)
-        self._play_state = PlayState.PLAYING
-        _logger.debug("Constructor finished, player fully initialized")
+        self._voice_client.play(audio_source, after=callback)
+        _logger.debug("Playback initialized")
 
-    def __del__(self):
-        self.stop()
+    async def _on_song_over(self):
+        _logger.debug("Song is over")
 
-    def resume(self):
-        if self._play_state == PlayState.STOPPED:
-            raise PlayerStoppedError()
+        # Emit event that a song finished
+        signal("player_song_over").send(self)
 
-        if self._play_state == PlayState.PAUSED:
-            _logger.debug("Resuming playback")
-            self._play_state = PlayState.PLAYING
-            self._voice_client.resume()
-
-    def pause(self):
-        if self._play_state == PlayState.STOPPED:
-            raise PlayerStoppedError()
-
-        if self._play_state == PlayState.PLAYING:
-            _logger.debug("Pausing playback")
-            self._play_state = PlayState.PAUSED
-            self._voice_client.pause()
-
-    def stop(self):
-        if self._play_state != PlayState.STOPPED:
-            _logger.debug("Stopping playback")
-            self._play_state = PlayState.STOPPED
-            self._halt_event.set()
-            self._voice_client.stop()
-
-    def get_endpoint(self):
-        return self._endpoint
+        # Play next song if there is one in the queue
+        if self._song_queue.size() > 0:
+            _logger.debug("Playing next song in queue")
+            self._init_playback(self._song_queue.get_next())
 
 
 def _downloader(endpoint: Endpoint, pipe_write: int, halt_event: threading.Event):
-    _logger.debug(f"Downloader thread starting for \"{endpoint.get_song_description()}\"")
+    _logger.debug(f"Downloader thread started for \"{endpoint.get_song_description()}\"")
     try:
         for chunk in endpoint.stream_chunks(endpoint.get_preferred_chunk_size()):
             if halt_event.is_set():
@@ -101,6 +110,7 @@ def _downloader(endpoint: Endpoint, pipe_write: int, halt_event: threading.Event
                 _logger.debug("Downloader received halt event")
                 break
     except BrokenPipeError:
+        # The read end may be closed at any point in time, if this happens ignore it and clean up
         pass
     finally:
         os.close(pipe_write)

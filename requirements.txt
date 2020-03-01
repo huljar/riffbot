@@ -1,3 +1,4 @@
+blinker
 discord.py
 git+https://github.com/mps-youtube/pafy#egg=pafy
 PyNaCl
