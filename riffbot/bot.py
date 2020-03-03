@@ -95,10 +95,10 @@ async def play(ctx, *args):
         endpoints = [YouTubeEndpoint(video) for video in videos]
         song_queue = _player.get_queue()
         song_queue.enqueue(endpoints)
+        if len(endpoints) > 1:
+            await ctx.send(f"Enqueued [{len(endpoints)}] songs!")
         if not _player.get_current():
             _player.play()
-        if song_queue.size() > 0:
-            await ctx.send(f"[{song_queue.size()}]  {endpoints[0].get_song_description()}")
 
 
 @bot.command(help="Pause the currently playing song.")
@@ -109,6 +109,25 @@ async def pause(ctx):
     endpoint = _player.get_current()
     if endpoint:
         await ctx.send(f"⏸  {endpoint.get_song_description()}")
+
+
+@bot.command(help="Enqueue a mix of songs similar to the current one (YouTube only).")
+@commands.guild_only()
+async def radio(ctx: commands.Context):
+    _logger.info(f"Received command \"radio\" from {ctx.author.name}")
+    if _player:
+        current_endpoint = _player.get_current()
+        if current_endpoint:
+            if isinstance(current_endpoint, YouTubeEndpoint):
+                current_id = current_endpoint.get_youtube_id()
+                mix_url = f"https://www.youtube.com/watch?v={current_id}&list=RD{current_id}"
+                # If the current song itself is part of the radio, filter it out
+                radio_endpoints = [YouTubeEndpoint(video) for video in converters.to_youtube_videos([mix_url])
+                                   if video.videoid != current_id]
+                _player.get_queue().enqueue(radio_endpoints)
+                await ctx.send(f"Enqueued [{len(radio_endpoints)}] songs!")
+            else:
+                await ctx.send("Radio is currently only supported for YouTube songs.")
 
 
 @bot.command(help="Seek to an approximate position in the current song.")

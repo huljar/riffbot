@@ -55,6 +55,9 @@ class YouTubeEndpoint(Endpoint):
     def get_length(self) -> int:
         return self._video.length
 
+    def get_youtube_id(self) -> str:
+        return self._video.videoid
+
     def _get_url_variant(self, url: str) -> str:
         for template, regex in _range_variants.items():
             if regex.match(url) is not None:
