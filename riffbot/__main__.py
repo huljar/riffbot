@@ -32,7 +32,7 @@ def main():
     level = LogLevel[args.log[0]].value
     logger = logging.getLogger(__package__)
     handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s [%(name)s] (%(levelname)s) %(message)s", "%m/%d/%Y %H:%M:%S")
+    formatter = logging.Formatter("%(asctime)s (%(levelname)s) [%(name)s] %(message)s", "%m/%d/%Y %H:%M:%S")
 
     handler.setFormatter(formatter)
     handler.setLevel(level)
