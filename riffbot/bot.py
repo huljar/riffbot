@@ -163,6 +163,15 @@ async def queue(ctx):
         await ctx.send(string)
 
 
+@bot.command(help="Clear the song queue of its current contents.")
+@commands.guild_only()
+async def clear(ctx):
+    _logger.info(f"Received command \"clear\" from {ctx.author.name}")
+    if _player:
+        _player.get_queue().clear()
+        await ctx.send("Cleared the song queue!")
+
+
 @bot.command(help="Skip the current song.")
 @commands.guild_only()
 async def skip(ctx):

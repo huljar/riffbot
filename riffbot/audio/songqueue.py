@@ -29,5 +29,8 @@ class SongQueue:
     def list(self) -> List[Endpoint]:
         return [endpoint for endpoint in self._queue]
 
+    def clear(self):
+        self._queue.clear()
+
     def size(self) -> int:
         return len(self._queue)
