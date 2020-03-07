@@ -137,9 +137,13 @@ async def queue(ctx):
     if len(songs) == 0:
         await ctx.send("No songs are currently enqueued!")
     else:
+        # Build string to print the first 15 songs in the queue
         string = functools.reduce(lambda acc, val: acc +
-                                  f"\n[{val[0]+1}]  {val[1].get_song_description()}", enumerate(songs), "")
-        await ctx.send(string)
+                                  f"\n[{val[0]+1}]  {val[1].get_song_description()}", enumerate(songs[:15]), "")
+        # If there are more than 15 songs enqueued, add how many were not printed
+        if len(songs) > 15:
+            string += f"\n+ {len(songs) - 15} more songs"
+        await ctx.send(string[1:])  # [1:] to get rid of the first newline character
 
 
 @bot.command(help="Clear the song queue of its current contents.")
