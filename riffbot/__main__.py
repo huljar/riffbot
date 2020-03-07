@@ -29,7 +29,7 @@ def main():
     args = cmdparser.parse_args()
 
     # Set up logging
-    level = LogLevel[args.log[0]].value
+    level = LogLevel[args.log[0].upper()].value
     logger = logging.getLogger(__package__)
     handler = logging.StreamHandler()
     formatter = logging.Formatter("%(asctime)s (%(levelname)s) [%(name)s] %(message)s", "%m/%d/%Y %H:%M:%S")

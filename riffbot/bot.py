@@ -174,13 +174,22 @@ async def clear(ctx):
 
 @bot.command(help="Skip the current song.")
 @commands.guild_only()
-async def skip(ctx):
-    _logger.info(f"Received command \"skip\" from {ctx.author.name}")
+async def skip(ctx, number_of_songs: Optional[int]):
+    _logger.info(
+        f"Received command \"skip{f' {number_of_songs}' if number_of_songs is not None else ''}\" from {ctx.author.name}")
     if _player:
         current = _player.get_current()
         if current:
-            await ctx.send(f"⏩  {current.get_song_description()}")
             _player.skip()
+        queue = _player.get_queue()
+        if number_of_songs is not None and number_of_songs > 1:
+            # Remove the first (number_of_songs - 1) songs from the queue
+            for i in range(number_of_songs - 1):
+                if queue.get_next() is None:
+                    break
+            await ctx.send(f"⏩  to song {number_of_songs} in queue")
+        elif current:
+            await ctx.send(f"⏩  {current.get_song_description()}")
 
 
 @bot.command(help="Log out and shut down the bot. This can only be done by admins and is irreversible.")

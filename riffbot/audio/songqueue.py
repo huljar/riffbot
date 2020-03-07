@@ -22,9 +22,10 @@ class SongQueue:
         self._queue.extend(endpoints)
 
     def get_next(self) -> Optional[Endpoint]:
-        if len(self._queue) == 0:
+        try:
+            return self._queue.popleft()
+        except IndexError:
             return None
-        return self._queue.popleft()
 
     def list(self) -> List[Endpoint]:
         return [endpoint for endpoint in self._queue]
