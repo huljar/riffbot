@@ -76,6 +76,8 @@ async def play(ctx, *args):
             await ctx.send(f"Enqueued [{len(endpoints)}] songs!")
         if not _player.get_current():
             _player.play()
+        elif len(endpoints) == 1:
+            await ctx.send(f"[{song_queue.size()}]  {endpoints[0].get_song_description()}")
 
 
 @bot.command(help="Pause the currently playing song.")
