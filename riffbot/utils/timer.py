@@ -10,6 +10,9 @@ class Timer:
         self._kwargs = kwargs
         self._task = asyncio.ensure_future(self._job())
 
+    def __del__(self):
+        self.cancel()
+
     async def _job(self):
         await asyncio.sleep(self._timeout)
         await self._callback(*self._args, **self._kwargs)
