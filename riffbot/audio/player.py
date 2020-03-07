@@ -50,6 +50,12 @@ class Player:
             _logger.debug("Skipping song")
             self._voice_client.stop()
 
+    def is_playing(self):
+        return self._voice_client.is_playing()
+
+    def is_paused(self):
+        return self._voice_client.is_paused()
+
     def get_current(self) -> Optional[Endpoint]:
         return self._current
 

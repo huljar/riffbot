@@ -4,6 +4,7 @@ import logging
 from typing import Optional
 
 from blinker import signal
+import discord
 from discord.ext import commands
 
 from riffbot.audio.player import Player
@@ -31,19 +32,30 @@ def _on_song_start(ctx: commands.Context, sender: Player, song: Endpoint):
     _logger.debug("Song start handler called")
 
     async def exec():
-        await ctx.send(f"▶  {song.get_song_description()}")
+        try:
+            await ctx.channel.edit(topic=f"▶  {song.get_song_description()}")
+        except discord.Forbidden:
+            _logger.info("Unable to edit channel description to current song (missing permission)")
 
     asyncio.ensure_future(exec())
 
 
 def _on_song_stop(ctx: commands.Context, sender: Player, is_last: bool):
-    global _leave_timer
     _logger.debug("Song stop handler called")
-    if is_last:
-        if _leave_timer:
-            _leave_timer.reset_timeout()
-        else:
-            _leave_timer = Timer(120, leave_channel, ctx)  # 2 minutes until bot leaves the channel
+
+    async def exec():
+        global _leave_timer
+        if is_last:
+            if _leave_timer:
+                _leave_timer.reset_timeout()
+            else:
+                _leave_timer = Timer(120, leave_channel, ctx)  # 2 minutes until bot leaves the channel
+            try:
+                await ctx.channel.edit(topic=None)
+            except discord.Forbidden:
+                _logger.info("Unable to clear channel topic (missing permission)")
+
+    asyncio.ensure_future(exec())
 
 
 @bot.event
@@ -54,40 +66,63 @@ async def on_ready():
 @bot.command(help="Play the song at the given URL.")
 @commands.guild_only()
 @checks.is_in_voice_channel()
-async def play(ctx, *args):
+async def play(ctx: commands.Context, *args):
     _logger.info(f"Received command \"{' '.join(['play', *args])}\" from {ctx.author.name}")
     cancel_leave_timer()
-    # Can't specify a converter directly for a variable number of arguments unfortunately
-    videos = converters.to_youtube_videos(args)
-    if videos is None:
-        # Resume paused song
-        if _player:
+    if len(args) == 0:
+        # Resume paused song if one is currently playing
+        if _player and _player.is_paused():
             _player.play()
             endpoint = _player.get_current()
             if endpoint:
-                await ctx.send(f"▶  {endpoint.get_song_description()}")
+                await ctx.send(f"▶  Resuming…")
+                try:
+                    await ctx.channel.edit(topic=f"▶  {endpoint.get_song_description()}")
+                except discord.Forbidden:
+                    _logger.info("Unable to edit channel description to current song (missing permission)")
     else:
+        # Show in channel that the bot is typing (fetching the video(s) may take up to a few seconds)
+        # Not using "with ctx.typing()" because the typing indicator sometimes lingered too long after the reply was
+        # already sent
+        await ctx.trigger_typing()
+        reply = "No videos found :("
+        # Can't specify a converter directly for a variable number of arguments unfortunately
+        videos = converters.to_youtube_videos(args)
         if ctx.voice_client is None:
             await join_channel(ctx)
         endpoints = [YouTubeEndpoint(video) for video in videos]
         song_queue = _player.get_queue()
         song_queue.enqueue(endpoints)
-        if len(endpoints) > 1:
-            await ctx.send(f"Enqueued [{len(endpoints)}] songs!")
         if not _player.get_current():
+            # No song is currently playing, so start playback and reply with appropriate message
             _player.play()
-        elif len(endpoints) == 1:
-            await ctx.send(f"[{song_queue.size()}]  {endpoints[0].get_song_description()}")
+            reply = f"▶  {endpoints[0].get_song_description()}"
+            if len(endpoints) > 1:
+                reply += f" (+ {len(endpoints) - 1} enqueued)"
+        else:
+            # A song is already playing, reply with a different message in this case
+            reply = f"[{song_queue.size() - len(endpoints) + 1}] "
+            if len(endpoints) == 1:
+                reply += endpoints[0].get_song_description()
+            elif len(endpoints) > 1:
+                reply = f"{len(endpoints)} songs"
+        # Send the reply (also clearing the typing status from the channel)
+        await ctx.send(reply)
 
 
 @bot.command(help="Pause the currently playing song.")
 @commands.guild_only()
 async def pause(ctx):
     _logger.info(f"Received command \"pause\" from {ctx.author.name}")
-    _player.pause()
-    endpoint = _player.get_current()
-    if endpoint:
-        await ctx.send(f"⏸  {endpoint.get_song_description()}")
+    if _player and _player.is_playing():
+        _player.pause()
+        endpoint = _player.get_current()
+        if endpoint:
+            await ctx.send(f"⏸  Pausing…")
+            try:
+                await ctx.channel.edit(topic=f"⏸  {endpoint.get_song_description()}")
+            except discord.Forbidden:
+                _logger.info("Unable to edit channel description to current song (missing permission)")
 
 
 @bot.command(help="Enqueue a mix of songs similar to the current one (YouTube only).")
@@ -173,9 +208,9 @@ async def skip(ctx, number_of_songs: Optional[int]):
             for i in range(number_of_songs - 1):
                 if queue.get_next() is None:
                     break
-            await ctx.send(f"⏩  to song {number_of_songs} in queue")
+            await ctx.send(f"⏭  to song {number_of_songs} in queue")
         elif current:
-            await ctx.send(f"⏩  {current.get_song_description()}")
+            await ctx.send(f"⏭  {current.get_song_description()}")
 
 
 @bot.command(help="Move to the user's current voice channel.")
@@ -240,5 +275,9 @@ async def leave_channel(ctx, *, send_info=False):
         _player.stop()
         _player = None
         await ctx.voice_client.disconnect()
+        try:
+            await ctx.channel.edit(topic=None)
+        except discord.Forbidden:
+            _logger.info("Unable to clear channel topic (missing permission)")
         if send_info:
             await ctx.send(f"Disconnected from {voice_channel}!")

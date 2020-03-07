@@ -23,7 +23,8 @@ make install-dev
 
 To run Riffbot, you need to register a bot with your Discord server first and obtain a token. Head over
 [here](https://github.com/reactiflux/discord-irc/wiki/Creating-a-discord-bot-&-getting-a-token) for a great rundown on
-how this is done. The bot needs at least permissions to view channels, send messages, connect to voice, and speak.
+how this is done. The bot needs at permissions to view channels, manage the channel where it will receive commands, send
+messages to that same channel, connect to voice, and speak.
 
 The token is used by the bot to authenticate itself with Discord. Riffbot reads the token from the file `src/.env` that
 you'll have to create. Put the following contents into it:
