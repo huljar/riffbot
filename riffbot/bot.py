@@ -6,18 +6,18 @@ from typing import Optional
 from blinker import signal
 from discord.ext import commands
 
-from riffbot.utils import checks
-from riffbot.utils import converters
 from riffbot.audio.player import Player
 from riffbot.endpoints.endpoint import Endpoint
 from riffbot.endpoints.youtube import YouTubeEndpoint
+from riffbot.utils import checks, converters
+from riffbot.utils.timer import Timer
 
 _logger = logging.getLogger(__name__)
 
 bot = commands.Bot(command_prefix="!")
 
 _player: Optional[Player] = None
-_explicit_join = False
+_leave_timer: Optional[Timer] = None
 
 
 def _on_song_start(ctx: commands.Context, sender: Player, song: Endpoint):
@@ -30,13 +30,13 @@ def _on_song_start(ctx: commands.Context, sender: Player, song: Endpoint):
 
 
 def _on_song_stop(ctx: commands.Context, sender: Player, is_last: bool):
+    global _leave_timer
     _logger.debug("Song stop handler called")
-
-    async def exec():
-        if is_last and not _explicit_join:
-            await leave_channel(ctx)
-
-    asyncio.ensure_future(exec())
+    if is_last:
+        if _leave_timer:
+            _leave_timer.reset_timeout()
+        else:
+            _leave_timer = Timer(120, leave_channel, ctx)  # 2 minutes until bot leaves the channel
 
 
 @bot.event
@@ -44,41 +44,22 @@ async def on_ready():
     _logger.info(f"Logged on as {bot.user} :)")
 
 
-@bot.command(help="Join the issuer's voice channel.")
-@commands.guild_only()
-# @commands.bot_has_permissions(connect=True)
-@checks.is_in_voice_channel()
-async def join(ctx):
-    global _explicit_join
-    _logger.info(f"Received command \"join\" from {ctx.author.name}")
-    _explicit_join = True
-    await join_channel(ctx, send_info=True)
-
-
 @bot.command(help="Leave the current voice channel.")
 @commands.guild_only()
 async def leave(ctx):
-    global _explicit_join
     _logger.info(f"Received command \"leave\" from {ctx.author.name}")
-    _explicit_join = False
+    if _leave_timer:
+        _leave_timer.cancel()
     await leave_channel(ctx, send_info=True)
-
-
-@bot.command(help="Instruct the bot to stay in the channel after all songs have finished playing.")
-@commands.guild_only()
-async def stay(ctx):
-    global _explicit_join
-    _logger.info(f"Received command \"stay\" from {ctx.author.name}")
-    if ctx.voice_client is not None:
-        _explicit_join = True
-        await ctx.send("I will now stay in the current voice channel :)")
 
 
 @bot.command(help="Play the song at the given URL.")
 @commands.guild_only()
+@checks.is_in_voice_channel()
 async def play(ctx, *args):
-    global _explicit_join
     _logger.info(f"Received command \"{' '.join(['play', *args])}\" from {ctx.author.name}")
+    if _leave_timer:
+        _leave_timer.cancel()
     # Can't specify a converter directly for a variable number of arguments unfortunately
     videos = converters.to_youtube_videos(args)
     if videos is None:
@@ -90,7 +71,6 @@ async def play(ctx, *args):
                 await ctx.send(f"▶  {endpoint.get_song_description()}")
     else:
         if ctx.voice_client is None:
-            _explicit_join = False
             await join_channel(ctx)
         endpoints = [YouTubeEndpoint(video) for video in videos]
         song_queue = _player.get_queue()
@@ -154,6 +134,8 @@ async def seek(ctx, position: converters.to_position):
 @commands.guild_only()
 async def queue(ctx):
     _logger.info(f"Received command \"queue\" from {ctx.author.name}")
+    if _leave_timer:
+        _leave_timer.reset_timeout()
     songs = _player.get_queue().list()
     if len(songs) == 0:
         await ctx.send("No songs are currently enqueued!")
@@ -176,7 +158,8 @@ async def clear(ctx):
 @commands.guild_only()
 async def skip(ctx, number_of_songs: Optional[int]):
     _logger.info(
-        f"Received command \"skip{f' {number_of_songs}' if number_of_songs is not None else ''}\" from {ctx.author.name}")
+        f"Received command \"skip{f' {number_of_songs}' if number_of_songs is not None else ''}\""
+        " from {ctx.author.name}")
     if _player:
         current = _player.get_current()
         if current:
@@ -196,6 +179,8 @@ async def skip(ctx, number_of_songs: Optional[int]):
 @commands.has_permissions(administrator=True)
 async def shutdown(ctx):
     _logger.info(f"Received command \"shutdown\" from {ctx.author.name}")
+    if _leave_timer:
+        _leave_timer.cancel()
     await ctx.send("Shutting down, goodbye!")
     await leave_channel(ctx)
     await bot.close()
@@ -208,7 +193,7 @@ async def on_command_error(ctx, error: Exception):
     raise error
 
 
-async def join_channel(ctx, *, send_info=False):
+async def join_channel(ctx):
     global _player
     voice_channel = ctx.author.voice.channel
     if ctx.voice_client is None:
@@ -217,13 +202,9 @@ async def join_channel(ctx, *, send_info=False):
         _player = Player(voice_client)
         signal("player_song_start").connect(functools.partial(_on_song_start, ctx), sender=_player, weak=False)
         signal("player_song_stop").connect(functools.partial(_on_song_stop, ctx), sender=_player, weak=False)
-        if send_info:
-            await ctx.send(f"Connected to {voice_channel.name}!")
     elif voice_channel != ctx.voice_client.channel:
         _logger.debug(f"Moving to channel {voice_channel.name}")
         await ctx.voice_client.move_to(voice_channel)
-        if send_info:
-            await ctx.send(f"Connected to {voice_channel.name}!")
 
 
 async def leave_channel(ctx, *, send_info=False):
