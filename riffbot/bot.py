@@ -10,7 +10,7 @@ from discord.ext import commands
 from riffbot.audio.player import Player
 from riffbot.endpoints.endpoint import Endpoint
 from riffbot.endpoints.youtube import YouTubeEndpoint
-from riffbot.utils import checks, converters
+from riffbot.utils import actions, checks, converters
 from riffbot.utils.timer import Timer
 
 _logger = logging.getLogger(__name__)
@@ -66,8 +66,8 @@ async def on_ready():
 @bot.command(help="Search YouTube for a song and play/enqueue it")
 @commands.guild_only()
 @checks.is_in_voice_channel()
+@actions.log_command(_logger)
 async def play(ctx: commands.Context, *args):
-    _logger.info(f"Received command \"{' '.join(['play', *args])}\" from {ctx.author.name}")
     if _leave_timer:
         _leave_timer.reset_timeout()
     if len(args) == 0:
@@ -116,8 +116,8 @@ async def play(ctx: commands.Context, *args):
 
 @bot.command(help="Search YouTube for a song and and play it right now, skipping the current song")
 @commands.guild_only()
+@actions.log_command(_logger)
 async def playnow(ctx: commands.Context, *args):
-    _logger.info(f"Received command \"{' '.join(['playnow', *args])}\" from {ctx.author.name}")
     if _leave_timer:
         _leave_timer.reset_timeout()
     if len(args) > 0:
@@ -150,8 +150,8 @@ async def playnow(ctx: commands.Context, *args):
 
 @bot.command(help="Pause the currently playing song.")
 @commands.guild_only()
+@actions.log_command(_logger)
 async def pause(ctx):
-    _logger.info(f"Received command \"pause\" from {ctx.author.name}")
     if _player and _player.is_playing():
         _player.pause()
         endpoint = _player.get_current()
@@ -165,8 +165,8 @@ async def pause(ctx):
 
 @bot.command(help="Enqueue a mix of songs similar to the current one (YouTube only).")
 @commands.guild_only()
+@actions.log_command(_logger)
 async def radio(ctx: commands.Context):
-    _logger.info(f"Received command \"radio\" from {ctx.author.name}")
     if _player:
         current_endpoint = _player.get_current()
         if current_endpoint:
@@ -184,8 +184,8 @@ async def radio(ctx: commands.Context):
 
 @bot.command(help="Seek to an approximate position in the current song.")
 @commands.guild_only()
+@actions.log_command(_logger)
 async def seek(ctx, position: converters.to_position):
-    _logger.info(f"Received command \"seek {position}\" from {ctx.author.name}")
     # Seeking is not yet supported in the player/endpoints, so cancel early
     await ctx.send("Seeking is not yet supported, sorry!")
     return
@@ -204,8 +204,8 @@ async def seek(ctx, position: converters.to_position):
 
 @bot.command(help="Show the current contents of the queue.")
 @commands.guild_only()
+@actions.log_command(_logger)
 async def queue(ctx):
-    _logger.info(f"Received command \"queue\" from {ctx.author.name}")
     if _leave_timer:
         _leave_timer.reset_timeout()
     songs = _player.get_queue().list()
@@ -223,8 +223,8 @@ async def queue(ctx):
 
 @bot.command(help="Clear the song queue of its current contents.")
 @commands.guild_only()
+@actions.log_command(_logger)
 async def clear(ctx):
-    _logger.info(f"Received command \"clear\" from {ctx.author.name}")
     if _player:
         _player.get_queue().clear()
         await ctx.send("Cleared the song queue!")
@@ -232,10 +232,8 @@ async def clear(ctx):
 
 @bot.command(help="Skip the current song.")
 @commands.guild_only()
+@actions.log_command(_logger)
 async def skip(ctx, number_of_songs: Optional[int]):
-    _logger.info(
-        f"Received command \"skip{f' {number_of_songs}' if number_of_songs is not None else ''}\""
-        f" from {ctx.author.name}")
     if _player:
         current = _player.get_current()
         if current:
@@ -254,8 +252,8 @@ async def skip(ctx, number_of_songs: Optional[int]):
 @bot.command(help="Shuffle the songs in the queue")
 @commands.guild_only()
 @checks.bot_is_in_voice_channel()
+@actions.log_command(_logger)
 async def shuffle(ctx: commands.Context):
-    _logger.info(f"Received command \"shuffle\" from {ctx.author.name}")
     if _leave_timer:
         _leave_timer.reset_timeout()
     if _player:
@@ -267,8 +265,8 @@ async def shuffle(ctx: commands.Context):
 @commands.guild_only()
 @checks.is_in_voice_channel()
 @checks.bot_is_in_voice_channel()
+@actions.log_command(_logger)
 async def follow(ctx: commands.Context):
-    _logger.info(f"Received command \"follow\" from {ctx.author.name}")
     if _leave_timer:
         _leave_timer.reset_timeout()
     await join_channel(ctx, send_info=True)
@@ -276,16 +274,16 @@ async def follow(ctx: commands.Context):
 
 @bot.command(help="Leave the current voice channel.")
 @commands.guild_only()
+@actions.log_command(_logger)
 async def leave(ctx):
-    _logger.info(f"Received command \"leave\" from {ctx.author.name}")
     cancel_leave_timer()
     await leave_channel(ctx, send_info=True)
 
 
 @bot.command(help="Log out and shut down the bot. This can only be done by the bot owner.")
 @commands.is_owner()
+@actions.log_command(_logger)
 async def shutdown(ctx):
-    _logger.info(f"Received command \"shutdown\" from {ctx.author.name}")
     cancel_leave_timer()
     await ctx.send("Shutting down, goodbye!")
     await leave_channel(ctx)
