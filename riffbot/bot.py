@@ -63,18 +63,20 @@ async def on_ready():
     _logger.info(f"Logged on as {bot.user} :)")
 
 
-@bot.command(help="Play the song at the given URL.")
+@bot.command(help="Search YouTube for a song and play/enqueue it")
 @commands.guild_only()
 @checks.is_in_voice_channel()
 async def play(ctx: commands.Context, *args):
     _logger.info(f"Received command \"{' '.join(['play', *args])}\" from {ctx.author.name}")
-    cancel_leave_timer()
+    if _leave_timer:
+        _leave_timer.reset_timeout()
     if len(args) == 0:
         # Resume paused song if one is currently playing
         if _player and _player.is_paused():
             _player.play()
             endpoint = _player.get_current()
             if endpoint:
+                cancel_leave_timer()
                 await ctx.send(f"▶  Resuming…")
                 try:
                     await ctx.channel.edit(topic=f"▶  {endpoint.get_song_description()}")
@@ -91,6 +93,7 @@ async def play(ctx: commands.Context, *args):
         if ctx.voice_client is None:
             await join_channel(ctx)
         if videos is not None:
+            cancel_leave_timer()
             endpoints = [YouTubeEndpoint(video) for video in videos]
             song_queue = _player.get_queue()
             song_queue.enqueue(endpoints)
@@ -107,6 +110,40 @@ async def play(ctx: commands.Context, *args):
                     reply += endpoints[0].get_song_description()
                 elif len(endpoints) > 1:
                     reply = f"{len(endpoints)} songs"
+        # Send the reply (also clearing the typing status from the channel)
+        await ctx.send(reply)
+
+
+@bot.command(help="Search YouTube for a song and and play it right now, skipping the current song")
+@commands.guild_only()
+async def playnow(ctx: commands.Context, *args):
+    _logger.info(f"Received command \"{' '.join(['playnow', *args])}\" from {ctx.author.name}")
+    if _leave_timer:
+        _leave_timer.reset_timeout()
+    if len(args) > 0:
+        # Show in channel that the bot is typing (fetching the video(s) may take up to a few seconds)
+        # Not using "with ctx.typing()" because the typing indicator sometimes lingered too long after the reply was
+        # already sent
+        await ctx.trigger_typing()
+        reply = "Sorry, no videos found :("
+        # Can't specify a converter directly for a variable number of arguments unfortunately
+        videos = converters.to_youtube_videos(args)
+        if ctx.voice_client is None:
+            await join_channel(ctx)
+        if videos is not None:
+            cancel_leave_timer()
+            endpoints = [YouTubeEndpoint(video) for video in videos]
+            song_queue = _player.get_queue()
+            song_queue.enqueue(endpoints, pos=0)
+            if _player.get_current():
+                # A song is currently playing, so skip it
+                _player.skip()
+            else:
+                # No song is playing, so start playback now
+                _player.play()
+            reply = f"▶  {endpoints[0].get_song_description()}"
+            if len(endpoints) > 1:
+                reply += f" (+ {len(endpoints) - 1} enqueued at front)"
         # Send the reply (also clearing the typing status from the channel)
         await ctx.send(reply)
 
@@ -219,6 +256,8 @@ async def skip(ctx, number_of_songs: Optional[int]):
 @checks.bot_is_in_voice_channel()
 async def shuffle(ctx: commands.Context):
     _logger.info(f"Received command \"shuffle\" from {ctx.author.name}")
+    if _leave_timer:
+        _leave_timer.reset_timeout()
     if _player:
         _player.get_queue().shuffle()
         await ctx.send("🔀  Shuffled the queue")
