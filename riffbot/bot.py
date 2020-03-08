@@ -85,27 +85,28 @@ async def play(ctx: commands.Context, *args):
         # Not using "with ctx.typing()" because the typing indicator sometimes lingered too long after the reply was
         # already sent
         await ctx.trigger_typing()
-        reply = "No videos found :("
+        reply = "Sorry, no videos found :("
         # Can't specify a converter directly for a variable number of arguments unfortunately
         videos = converters.to_youtube_videos(args)
         if ctx.voice_client is None:
             await join_channel(ctx)
-        endpoints = [YouTubeEndpoint(video) for video in videos]
-        song_queue = _player.get_queue()
-        song_queue.enqueue(endpoints)
-        if not _player.get_current():
-            # No song is currently playing, so start playback and reply with appropriate message
-            _player.play()
-            reply = f"▶  {endpoints[0].get_song_description()}"
-            if len(endpoints) > 1:
-                reply += f" (+ {len(endpoints) - 1} enqueued)"
-        else:
-            # A song is already playing, reply with a different message in this case
-            reply = f"[{song_queue.size() - len(endpoints) + 1}] "
-            if len(endpoints) == 1:
-                reply += endpoints[0].get_song_description()
-            elif len(endpoints) > 1:
-                reply = f"{len(endpoints)} songs"
+        if videos is not None:
+            endpoints = [YouTubeEndpoint(video) for video in videos]
+            song_queue = _player.get_queue()
+            song_queue.enqueue(endpoints)
+            if not _player.get_current():
+                # No song is currently playing, so start playback and reply with appropriate message
+                _player.play()
+                reply = f"▶  {endpoints[0].get_song_description()}"
+                if len(endpoints) > 1:
+                    reply += f" (+ {len(endpoints) - 1} enqueued)"
+            else:
+                # A song is already playing, reply with a different message in this case
+                reply = f"[{song_queue.size() - len(endpoints) + 1}] "
+                if len(endpoints) == 1:
+                    reply += endpoints[0].get_song_description()
+                elif len(endpoints) > 1:
+                    reply = f"{len(endpoints)} songs"
         # Send the reply (also clearing the typing status from the channel)
         await ctx.send(reply)
 
@@ -197,7 +198,7 @@ async def clear(ctx):
 async def skip(ctx, number_of_songs: Optional[int]):
     _logger.info(
         f"Received command \"skip{f' {number_of_songs}' if number_of_songs is not None else ''}\""
-        " from {ctx.author.name}")
+        f" from {ctx.author.name}")
     if _player:
         current = _player.get_current()
         if current:
@@ -211,6 +212,16 @@ async def skip(ctx, number_of_songs: Optional[int]):
             await ctx.send(f"⏭  to song {number_of_songs} in queue")
         elif current:
             await ctx.send(f"⏭  Skipping…")
+
+
+@bot.command(help="Shuffle the songs in the queue")
+@commands.guild_only()
+@checks.bot_is_in_voice_channel()
+async def shuffle(ctx: commands.Context):
+    _logger.info(f"Received command \"shuffle\" from {ctx.author.name}")
+    if _player:
+        _player.get_queue().shuffle()
+        await ctx.send("🔀  Shuffled the queue")
 
 
 @bot.command(help="Move to the user's current voice channel.")
@@ -266,7 +277,8 @@ async def join_channel(ctx, *, send_info=False):
         reply = f"Moved to {voice_channel.name}!"
     else:
         reply = f"I am already in {voice_channel.name}!"
-    await ctx.send(reply)
+    if send_info:
+        await ctx.send(reply)
 
 
 async def leave_channel(ctx, *, send_info=False):

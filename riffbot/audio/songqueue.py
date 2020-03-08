@@ -1,5 +1,6 @@
 import collections
 import logging
+import random
 from typing import List, Optional, Union
 
 from riffbot.endpoints.endpoint import Endpoint
@@ -30,6 +31,13 @@ class SongQueue:
                 self._queue.insert(pos + offset, endpoint)
         else:
             self._queue.extend(endpoints)
+
+    def shuffle(self) -> None:
+        _logger.debug("Shuffling the queue")
+        elements = self.list()
+        random.shuffle(elements)
+        self.clear()
+        self._queue.extend(elements)
 
     def get_next(self) -> Optional[Endpoint]:
         try:
