@@ -35,7 +35,7 @@ def _on_song_start(ctx: commands.Context, sender: Player, song: Endpoint):
         try:
             await ctx.channel.edit(topic=f"▶  {song.get_song_description()}")
         except discord.Forbidden:
-            _logger.info("Unable to edit channel description to current song (missing permission)")
+            _logger.warning("Unable to edit channel description to current song (missing permission)")
 
     asyncio.ensure_future(exec())
 
@@ -53,7 +53,7 @@ def _on_song_stop(ctx: commands.Context, sender: Player, is_last: bool):
             try:
                 await ctx.channel.edit(topic=None)
             except discord.Forbidden:
-                _logger.info("Unable to clear channel topic (missing permission)")
+                _logger.warning("Unable to clear channel topic (missing permission)")
 
     asyncio.ensure_future(exec())
 
@@ -79,7 +79,7 @@ async def play(ctx: commands.Context, *args):
                 try:
                     await ctx.channel.edit(topic=f"▶  {endpoint.get_song_description()}")
                 except discord.Forbidden:
-                    _logger.info("Unable to edit channel description to current song (missing permission)")
+                    _logger.warning("Unable to edit channel description to current song (missing permission)")
     else:
         # Show in channel that the bot is typing (fetching the video(s) may take up to a few seconds)
         # Not using "with ctx.typing()" because the typing indicator sometimes lingered too long after the reply was
@@ -122,7 +122,7 @@ async def pause(ctx):
             try:
                 await ctx.channel.edit(topic=f"⏸  {endpoint.get_song_description()}")
             except discord.Forbidden:
-                _logger.info("Unable to edit channel description to current song (missing permission)")
+                _logger.warning("Unable to edit channel description to current song (missing permission)")
 
 
 @bot.command(help="Enqueue a mix of songs similar to the current one (YouTube only).")
@@ -210,7 +210,7 @@ async def skip(ctx, number_of_songs: Optional[int]):
                     break
             await ctx.send(f"⏭  to song {number_of_songs} in queue")
         elif current:
-            await ctx.send(f"⏭  {current.get_song_description()}")
+            await ctx.send(f"⏭  Skipping…")
 
 
 @bot.command(help="Move to the user's current voice channel.")
@@ -252,19 +252,21 @@ async def on_command_error(ctx, error: Exception):
 async def join_channel(ctx, *, send_info=False):
     global _player
     voice_channel = ctx.author.voice.channel
+    reply = ""
     if ctx.voice_client is None:
         _logger.debug(f"Joining channel {voice_channel.name}")
         voice_client = await voice_channel.connect()
         _player = Player(voice_client)
         signal("player_song_start").connect(functools.partial(_on_song_start, ctx), sender=_player, weak=False)
         signal("player_song_stop").connect(functools.partial(_on_song_stop, ctx), sender=_player, weak=False)
-        if send_info:
-            await ctx.send(f"Connected to {voice_channel.name}!")
+        reply = f"Connected to {voice_channel.name}!"
     elif voice_channel != ctx.voice_client.channel:
         _logger.debug(f"Moving to channel {voice_channel.name}")
         await ctx.voice_client.move_to(voice_channel)
-        if send_info:
-            await ctx.send(f"Moved to {voice_channel.name}!")
+        reply = f"Moved to {voice_channel.name}!"
+    else:
+        reply = f"I am already in {voice_channel.name}!"
+    await ctx.send(reply)
 
 
 async def leave_channel(ctx, *, send_info=False):
@@ -278,6 +280,6 @@ async def leave_channel(ctx, *, send_info=False):
         try:
             await ctx.channel.edit(topic=None)
         except discord.Forbidden:
-            _logger.info("Unable to clear channel topic (missing permission)")
+            _logger.warning("Unable to clear channel topic (missing permission)")
         if send_info:
             await ctx.send(f"Disconnected from {voice_channel}!")
