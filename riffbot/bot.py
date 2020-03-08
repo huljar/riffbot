@@ -28,6 +28,11 @@ def cancel_leave_timer():
         _leave_timer = None
 
 
+def reset_leave_timer():
+    if _leave_timer:
+        _leave_timer.reset_timeout()
+
+
 def _on_song_start(ctx: commands.Context, sender: Player, song: Endpoint):
     _logger.debug("Song start handler called")
 
@@ -68,8 +73,7 @@ async def on_ready():
 @checks.is_in_voice_channel()
 @actions.log_command(_logger)
 async def play(ctx: commands.Context, *args):
-    if _leave_timer:
-        _leave_timer.reset_timeout()
+    reset_leave_timer()
     if len(args) == 0:
         # Resume paused song if one is currently playing
         if _player and _player.is_paused():
@@ -118,8 +122,7 @@ async def play(ctx: commands.Context, *args):
 @commands.guild_only()
 @actions.log_command(_logger)
 async def playnow(ctx: commands.Context, *args):
-    if _leave_timer:
-        _leave_timer.reset_timeout()
+    reset_leave_timer()
     if len(args) > 0:
         # Show in channel that the bot is typing (fetching the video(s) may take up to a few seconds)
         # Not using "with ctx.typing()" because the typing indicator sometimes lingered too long after the reply was
@@ -152,6 +155,7 @@ async def playnow(ctx: commands.Context, *args):
 @commands.guild_only()
 @actions.log_command(_logger)
 async def pause(ctx):
+    reset_leave_timer()
     if _player and _player.is_playing():
         _player.pause()
         endpoint = _player.get_current()
@@ -167,6 +171,7 @@ async def pause(ctx):
 @commands.guild_only()
 @actions.log_command(_logger)
 async def radio(ctx: commands.Context):
+    reset_leave_timer()
     if _player:
         current_endpoint = _player.get_current()
         if current_endpoint:
@@ -186,6 +191,7 @@ async def radio(ctx: commands.Context):
 @commands.guild_only()
 @actions.log_command(_logger)
 async def seek(ctx, position: converters.to_position):
+    reset_leave_timer()
     # Seeking is not yet supported in the player/endpoints, so cancel early
     await ctx.send("Seeking is not yet supported, sorry!")
     return
@@ -206,8 +212,7 @@ async def seek(ctx, position: converters.to_position):
 @commands.guild_only()
 @actions.log_command(_logger)
 async def queue(ctx):
-    if _leave_timer:
-        _leave_timer.reset_timeout()
+    reset_leave_timer()
     songs = _player.get_queue().list()
     if len(songs) == 0:
         await ctx.send("No songs are currently enqueued!")
@@ -225,6 +230,7 @@ async def queue(ctx):
 @commands.guild_only()
 @actions.log_command(_logger)
 async def clear(ctx):
+    reset_leave_timer()
     if _player:
         _player.get_queue().clear()
         await ctx.send("Cleared the song queue!")
@@ -234,6 +240,7 @@ async def clear(ctx):
 @commands.guild_only()
 @actions.log_command(_logger)
 async def skip(ctx, number_of_songs: Optional[int]):
+    reset_leave_timer()
     if _player:
         current = _player.get_current()
         if current:
@@ -254,8 +261,7 @@ async def skip(ctx, number_of_songs: Optional[int]):
 @checks.bot_is_in_voice_channel()
 @actions.log_command(_logger)
 async def shuffle(ctx: commands.Context):
-    if _leave_timer:
-        _leave_timer.reset_timeout()
+    reset_leave_timer()
     if _player:
         _player.get_queue().shuffle()
         await ctx.send("🔀  Shuffled the queue")
@@ -267,8 +273,7 @@ async def shuffle(ctx: commands.Context):
 @checks.bot_is_in_voice_channel()
 @actions.log_command(_logger)
 async def follow(ctx: commands.Context):
-    if _leave_timer:
-        _leave_timer.reset_timeout()
+    reset_leave_timer()
     await join_channel(ctx, send_info=True)
 
 
