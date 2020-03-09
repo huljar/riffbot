@@ -21,8 +21,9 @@ class YouTubeEndpoint(Endpoint):
         self._initialized = False
 
     def initialize(self):
-        self._stream = self._video.getbestaudio(preftype="m4a")
-        self._initialized = True
+        if not self._initialized:
+            self._initialized = True
+            self._stream = self._video.getbestaudio(preftype="m4a")
 
     def is_initialized(self):
         return self._initialized

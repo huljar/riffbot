@@ -2,6 +2,7 @@ import asyncio
 import functools
 import logging
 from typing import Optional
+import urllib
 
 from blinker import signal
 import discord
@@ -212,13 +213,17 @@ async def radio(ctx: commands.Context):
         current_endpoint = _player.get_current()
         if current_endpoint:
             if isinstance(current_endpoint, YouTubeEndpoint):
-                current_id = current_endpoint.get_youtube_id()
-                mix_url = f"https://www.youtube.com/watch?v={current_id}&list=RD{current_id}"
-                # If the current song itself is part of the radio, filter it out
-                radio_endpoints = [YouTubeEndpoint(video) for video in converters.to_youtube_videos([mix_url])
-                                   if video.videoid != current_id]
-                _player.get_queue().enqueue(radio_endpoints)
-                await ctx.send(f"Enqueued [{len(radio_endpoints)}] songs!")
+                try:
+                    current_id = current_endpoint.get_youtube_id()
+                    mix_url = f"https://www.youtube.com/watch?v={current_id}&list=RD{current_id}"
+                    # If the current song itself is part of the radio, filter it out
+                    radio_endpoints = [YouTubeEndpoint(video) for video in converters.to_youtube_videos([mix_url])
+                                       if video.videoid != current_id]
+                    _player.get_queue().enqueue(radio_endpoints)
+                    await ctx.send(f"Enqueued [{len(radio_endpoints)}] songs!")
+                except urllib.error.HTTPError as error:
+                    await ctx.send("There is no radio available for the current song :(" if error.code == 400
+                                   else f"HTTP error while fetching the playlist: {error.code} {error.reason}")
             else:
                 await ctx.send("Radio is currently only supported for YouTube songs.")
 
