@@ -151,6 +151,42 @@ async def playnow(ctx: commands.Context, *args):
         await ctx.send(reply)
 
 
+@bot.command(help="Search YouTube for a song and and play it after the current song")
+@commands.guild_only()
+@actions.log_command(_logger)
+async def playnext(ctx: commands.Context, *args):
+    reset_leave_timer()
+    if len(args) > 0:
+        # Show in channel that the bot is typing (fetching the video(s) may take up to a few seconds)
+        # Not using "with ctx.typing()" because the typing indicator sometimes lingered too long after the reply was
+        # already sent
+        await ctx.trigger_typing()
+        reply = "Sorry, no videos found :("
+        # Can't specify a converter directly for a variable number of arguments unfortunately
+        videos = converters.to_youtube_videos(args)
+        if ctx.voice_client is None:
+            await join_channel(ctx)
+        if videos is not None:
+            cancel_leave_timer()
+            endpoints = [YouTubeEndpoint(video) for video in videos]
+            song_queue = _player.get_queue()
+            song_queue.enqueue(endpoints, pos=0)
+            if not _player.get_current():
+                # No song is playing, so start playback now
+                _player.play()
+                reply = f"▶  {endpoints[0].get_song_description()}"
+                if len(endpoints) > 1:
+                    reply += f" (+ {len(endpoints) - 1} enqueued)"
+            else:
+                reply = f"[1] "
+                if len(endpoints) == 1:
+                    reply += endpoints[0].get_song_description()
+                elif len(endpoints) > 1:
+                    reply = f"{len(endpoints)} songs"
+        # Send the reply (also clearing the typing status from the channel)
+        await ctx.send(reply)
+
+
 @bot.command(help="Pause the currently playing song.")
 @commands.guild_only()
 @actions.log_command(_logger)
