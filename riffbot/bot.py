@@ -1,7 +1,6 @@
 import asyncio
 import functools
 import logging
-import math
 from typing import Optional
 import urllib
 
@@ -13,7 +12,7 @@ from i18n import t
 from riffbot.audio.player import Player
 from riffbot.endpoints.endpoint import Endpoint
 from riffbot.endpoints.youtube import YouTubeEndpoint
-from riffbot.utils import actions, checks, converters
+from riffbot.utils import actions, checks, converters, utils
 from riffbot.utils.timer import Timer
 
 _logger = logging.getLogger(__name__)
@@ -84,9 +83,10 @@ async def play(ctx: commands.Context, *args):
             endpoint = _player.get_current()
             if endpoint:
                 cancel_leave_timer()
-                await ctx.send(f"▶  Resuming…")
+                await ctx.send(t("commands.resume", locale=ctx.guild.preferred_locale))
                 try:
-                    await ctx.channel.edit(topic=f"▶  {endpoint.get_song_description()}")
+                    await ctx.channel.edit(topic=t("commands.channel_topic", locale=ctx.guild.preferred_locale,
+                                                   desc=endpoint.get_song_description()))
                 except discord.Forbidden:
                     _logger.warning("Unable to edit channel description to current song (missing permission)")
     else:
@@ -94,7 +94,7 @@ async def play(ctx: commands.Context, *args):
         # Not using "with ctx.typing()" because the typing indicator sometimes lingered too long after the reply was
         # already sent
         await ctx.trigger_typing()
-        reply = "Sorry, no videos found :("
+        reply = t("commands.no_results", locale=ctx.guild.preferred_locale)
         # Can't specify a converter directly for a variable number of arguments unfortunately
         videos = converters.to_youtube_videos(args)
         if ctx.voice_client is None:
@@ -107,16 +107,25 @@ async def play(ctx: commands.Context, *args):
             if not _player.get_current():
                 # No song is currently playing, so start playback and reply with appropriate message
                 _player.play()
-                reply = f"▶  {endpoints[0].get_song_description()}"
+                length = utils.to_human_readable_position(endpoints[0].get_length())
                 if len(endpoints) > 1:
-                    reply += f" (+ {len(endpoints) - 1} enqueued)"
+                    reply = t("commands.play_now_multiple", locale=ctx.guild.preferred_locale,
+                              desc=endpoints[0].get_song_description(), len=length, more=len(endpoints)-1)
+                else:
+                    reply = t("commands.play_single", locale=ctx.guild.preferred_locale,
+                              desc=endpoints[0].get_song_description(), len=length)
             else:
                 # A song is already playing, reply with a different message in this case
-                reply = f"[{song_queue.size() - len(endpoints) + 1}] "
-                if len(endpoints) == 1:
-                    reply += endpoints[0].get_song_description()
-                elif len(endpoints) > 1:
-                    reply = f"{len(endpoints)} songs"
+                position = song_queue.size() - len(endpoints) + 1
+                if len(endpoints) > 1:
+                    length = utils.to_human_readable_position(
+                        functools.reduce(lambda acc, val: acc + val, [e.get_length() for e in endpoints], 0))
+                    reply = t("commands.enqueued_multiple", locale=ctx.guild.preferred_locale,
+                              num=len(endpoints), len=length, pos=position)
+                else:
+                    length = utils.to_human_readable_position(endpoints[0].get_length())
+                    reply = t("commands.enqueued_single", locale=ctx.guild.preferred_locale,
+                              desc=endpoints[0].get_song_description(), len=length, pos=position)
         # Send the reply (also clearing the typing status from the channel)
         await ctx.send(reply)
 
@@ -131,7 +140,7 @@ async def playnow(ctx: commands.Context, *args):
         # Not using "with ctx.typing()" because the typing indicator sometimes lingered too long after the reply was
         # already sent
         await ctx.trigger_typing()
-        reply = "Sorry, no videos found :("
+        reply = t("commands.no_results", locale=ctx.guild.preferred_locale)
         # Can't specify a converter directly for a variable number of arguments unfortunately
         videos = converters.to_youtube_videos(args)
         if ctx.voice_client is None:
@@ -147,9 +156,13 @@ async def playnow(ctx: commands.Context, *args):
             else:
                 # No song is playing, so start playback now
                 _player.play()
-            reply = f"▶  {endpoints[0].get_song_description()}"
+            length = utils.to_human_readable_position(endpoints[0].get_length())
             if len(endpoints) > 1:
-                reply += f" (+ {len(endpoints) - 1} enqueued at front)"
+                reply = t("commands.play_now_multiple", locale=ctx.guild.preferred_locale,
+                          desc=endpoints[0].get_song_description(), len=length, more=len(endpoints)-1)
+            else:
+                reply = t("commands.play_single", locale=ctx.guild.preferred_locale,
+                          desc=endpoints[0].get_song_description(), len=length)
         # Send the reply (also clearing the typing status from the channel)
         await ctx.send(reply)
 
@@ -164,7 +177,7 @@ async def playnext(ctx: commands.Context, *args):
         # Not using "with ctx.typing()" because the typing indicator sometimes lingered too long after the reply was
         # already sent
         await ctx.trigger_typing()
-        reply = "Sorry, no videos found :("
+        reply = t("commands.no_results", locale=ctx.guild.preferred_locale)
         # Can't specify a converter directly for a variable number of arguments unfortunately
         videos = converters.to_youtube_videos(args)
         if ctx.voice_client is None:
@@ -177,15 +190,23 @@ async def playnext(ctx: commands.Context, *args):
             if not _player.get_current():
                 # No song is playing, so start playback now
                 _player.play()
-                reply = f"▶  {endpoints[0].get_song_description()}"
+                length = utils.to_human_readable_position(endpoints[0].get_length())
                 if len(endpoints) > 1:
-                    reply += f" (+ {len(endpoints) - 1} enqueued)"
+                    reply = t("commands.play_multiple", locale=ctx.guild.preferred_locale,
+                              desc=endpoints[0].get_song_description(), len=length, more=len(endpoints)-1)
+                else:
+                    reply = t("commands.play_single", locale=ctx.guild.preferred_locale,
+                              desc=endpoints[0].get_song_description(), len=length)
             else:
-                reply = f"[1] "
-                if len(endpoints) == 1:
-                    reply += endpoints[0].get_song_description()
-                elif len(endpoints) > 1:
-                    reply = f"{len(endpoints)} songs"
+                if len(endpoints) > 1:
+                    length = utils.to_human_readable_position(
+                        functools.reduce(lambda acc, val: acc + val, [e.get_length() for e in endpoints], 0))
+                    reply = t("commands.enqueued_multiple", locale=ctx.guild.preferred_locale,
+                              num=len(endpoints), len=length, pos=1)
+                else:
+                    length = utils.to_human_readable_position(endpoints[0].get_length())
+                    reply = t("commands.enqueued_single", locale=ctx.guild.preferred_locale,
+                              desc=endpoints[0].get_song_description(), len=length, pos=1)
         # Send the reply (also clearing the typing status from the channel)
         await ctx.send(reply)
 
@@ -259,11 +280,9 @@ async def current(ctx: commands.Context):
     if _player:
         song = _player.get_current()
         if song:
-            length = song.get_length()
-            [h, m, s] = [math.floor(length / 3600), math.floor((length % 3600) / 60), length % 60]
-            length_str = f"{f'{h}:' if h > 0 else ''}{f'{m:02d}' if h > 0 else m}:{s:02d}"
+            length = utils.to_human_readable_position(song.get_length())
             await ctx.send(t("commands.current", locale=ctx.guild.preferred_locale,
-                             desc=song.get_song_description(), len=length_str))
+                             desc=song.get_song_description(), len=length))
 
 
 @bot.command(help="Show the current contents of the queue.")

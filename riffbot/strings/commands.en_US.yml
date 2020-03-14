@@ -1,4 +1,35 @@
 en_US:
-  current: |-
+  # Response to !play (without arguments) when the current song is paused
+  resume: ▶  **Resuming…**
+  # The channel topic that the bot uses to show the currently playing song
+  channel_topic: ▶  %{desc}
+  # Response to !play/!playnow/!playnext when the search yielded no results
+  no_results: 😔 Sorry, no videos found.
+  # Response to !play/!playnow/!playnext if the song is played immediately (and there was only 1 result)
+  play_single: |-
     __**Now playing:**__
+    ▶  `%{desc}` (%{len})
+  # Response to !play/!playnext if the song is played immediately (and there were multiple results)
+  play_multiple: |-
+    __**Now playing:**__
+    ▶  `%{desc}` (%{len})
+    *and enqueued **%{more}** more songs*
+  # Response to !playnow if there were multiple results
+  play_now_multiple: |-
+    __**Now playing:**__
+    ▶  `%{desc}` (%{len})
+    *and enqueued **%{more}** more songs at the front*
+  # Response to !play/!playnext if the song is not played immediately (and there was only 1 result)
+  enqueued_single: |-
+    __**Enqueued:**__
+    ↩  `%{desc}`  (%{len})
+    *at position **%{pos}***
+  # Response to !play/!playnext if the song is not played immediately (end there were multiple results)
+  enqueued_multiple: |-
+    __**Enqueued:**__
+    ↩  `%{num} songs`  (%{len} total)
+    *at position **%{pos}***
+  # Response to !current (information about the currently playing song)
+  current: |-
+    __**Currently playing:**__
     ▶  `%{desc}` (%{len})
