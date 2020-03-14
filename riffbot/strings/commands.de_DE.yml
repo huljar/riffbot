@@ -1,0 +1,4 @@
+de_DE:
+  current: |-
+    __**Aktueller Song:**__
+    ▶  `%{desc}` (%{len})

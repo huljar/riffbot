@@ -1,0 +1,4 @@
+en_US:
+  current: |-
+    __**Now playing:**__
+    ▶  `%{desc}` (%{len})

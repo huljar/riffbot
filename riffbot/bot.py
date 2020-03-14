@@ -1,12 +1,14 @@
 import asyncio
 import functools
 import logging
+import math
 from typing import Optional
 import urllib
 
 from blinker import signal
 import discord
 from discord.ext import commands
+from i18n import t
 
 from riffbot.audio.player import Player
 from riffbot.endpoints.endpoint import Endpoint
@@ -247,6 +249,21 @@ async def seek(ctx, position: converters.to_position):
             _player.seek(h * 3600 + m * 60 + s)
         except Exception:  # TODO: replace with specific exception
             await ctx.send("Position is out of bounds!")
+
+
+@bot.command(help="Display information on the currently playing song")
+@commands.guild_only()
+@actions.log_command(_logger)
+async def current(ctx: commands.Context):
+    reset_leave_timer()
+    if _player:
+        song = _player.get_current()
+        if song:
+            length = song.get_length()
+            [h, m, s] = [math.floor(length / 3600), math.floor((length % 3600) / 60), length % 60]
+            length_str = f"{f'{h}:' if h > 0 else ''}{f'{m:02d}' if h > 0 else m}:{s:02d}"
+            await ctx.send(t("commands.current", locale=ctx.guild.preferred_locale,
+                             desc=song.get_song_description(), len=length_str))
 
 
 @bot.command(help="Show the current contents of the queue.")

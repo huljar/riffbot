@@ -3,6 +3,7 @@ discord.py
 git+https://github.com/mps-youtube/pafy#egg=pafy
 PyNaCl
 python-dotenv
+python-i18n [YAML]
 requests
 youtube-dl
 youtube-search

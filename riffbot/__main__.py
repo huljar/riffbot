@@ -2,8 +2,10 @@ import argparse
 from enum import Enum
 import logging
 import os
+import pathlib
 
 from dotenv import load_dotenv
+import i18n
 
 from riffbot.bot import bot
 
@@ -38,6 +40,13 @@ def main():
     handler.setLevel(level)
     logger.addHandler(handler)
     logger.setLevel(level)
+
+    # Set up i18n
+    i18n.set("locale", "en_US")
+    i18n.set("fallback", "en_US")
+    i18n.set("enable_memoization", True)
+    strings_path = pathlib.Path(__file__).parent.absolute().joinpath("strings")
+    i18n.load_path.append(str(strings_path))
 
     # Read environment variables from .env file
     load_dotenv()
