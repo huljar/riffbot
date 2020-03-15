@@ -4,6 +4,7 @@ import random
 from typing import List, Optional, Union
 
 from riffbot.endpoints.endpoint import Endpoint
+from riffbot.utils import utils
 
 _logger = logging.getLogger(__name__)
 
@@ -53,3 +54,6 @@ class SongQueue:
 
     def size(self) -> int:
         return len(self._queue)
+
+    def get_total_length(self) -> int:
+        return utils.get_total_length(self._queue)

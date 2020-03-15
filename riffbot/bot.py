@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import logging
+import traceback
 from typing import Optional
 import urllib
 
@@ -329,8 +330,11 @@ async def queue(ctx):
 async def clear(ctx):
     reset_leave_timer()
     if _player:
-        _player.get_queue().clear()
-        await ctx.send("Cleared the song queue!")
+        queue = _player.get_queue()
+        num_songs = queue.size()
+        total_length = utils.to_human_readable_position(queue.get_total_length())
+        queue.clear()
+        await ctx.send(t("commands.queue_clear", locale=ctx.guild.preferred_locale, num=num_songs, total=total_length))
 
 
 @bot.command(help="Skip the current song.")
@@ -348,9 +352,9 @@ async def skip(ctx, number_of_songs: Optional[int]):
             for i in range(number_of_songs - 1):
                 if queue.get_next() is None:
                     break
-            await ctx.send(f"⏭  to song {number_of_songs} in queue")
+            await ctx.send(t("commands.skip_to", locale=ctx.guild.preferred_locale, num=number_of_songs))
         elif current:
-            await ctx.send(f"⏭  Skipping…")
+            await ctx.send(t("commands.skip_single", locale=ctx.guild.preferred_locale))
 
 
 @bot.command(help="Shuffle the songs in the queue")
@@ -361,7 +365,7 @@ async def shuffle(ctx: commands.Context):
     reset_leave_timer()
     if _player:
         _player.get_queue().shuffle()
-        await ctx.send("🔀  Shuffled the queue")
+        await ctx.send(t("commands.shuffle", locale=ctx.guild.preferred_locale))
 
 
 @bot.command(help="Move to the user's current voice channel.")
@@ -387,16 +391,18 @@ async def leave(ctx):
 @actions.log_command(_logger)
 async def shutdown(ctx):
     cancel_leave_timer()
-    await ctx.send("Shutting down, goodbye!")
+    await ctx.send(t("commands.shutdown", locale=ctx.guild.preferred_locale))
     await leave_channel(ctx)
     await bot.close()
 
 
 @bot.event
-async def on_command_error(ctx, error: Exception):
+async def on_command_error(ctx, error: BaseException):
     _logger.error(f"Exception occurred during command: {error}")
-    await ctx.send(f"Error: {error}")
-    raise error
+    # Handle all remaining exceptions
+    root_error = error.__cause__ if error.__cause__ else error
+    message = "\n".join([str(root_error), *traceback.format_tb(root_error.__traceback__)])
+    await ctx.send(t("commands.general_error", locale=ctx.guild.preferred_locale, message=message))
 
 
 async def join_channel(ctx, *, send_info=False):
@@ -409,13 +415,13 @@ async def join_channel(ctx, *, send_info=False):
         _player = Player(voice_client)
         signal("player_song_start").connect(functools.partial(_on_song_start, ctx), sender=_player, weak=False)
         signal("player_song_stop").connect(functools.partial(_on_song_stop, ctx), sender=_player, weak=False)
-        reply = f"Connected to {voice_channel.name}!"
+        reply = t("commands.channel_join", locale=ctx.guild.preferred_locale, name=voice_channel.name)
     elif voice_channel != ctx.voice_client.channel:
         _logger.debug(f"Moving to channel {voice_channel.name}")
         await ctx.voice_client.move_to(voice_channel)
-        reply = f"Moved to {voice_channel.name}!"
+        reply = t("commands.channel_move", locale=ctx.guild.preferred_locale, name=voice_channel.name)
     else:
-        reply = f"I am already in {voice_channel.name}!"
+        reply = t("commands.channel_already_in", locale=ctx.guild.preferred_locale, name=voice_channel.name)
     if send_info:
         await ctx.send(reply)
 
@@ -433,4 +439,4 @@ async def leave_channel(ctx, *, send_info=False):
         except discord.Forbidden:
             _logger.warning("Unable to clear channel topic (missing permission)")
         if send_info:
-            await ctx.send(f"Disconnected from {voice_channel}!")
+            await ctx.send(t("commands.channel_leave", locale=ctx.guild.preferred_locale, name=voice_channel))

@@ -82,3 +82,27 @@ en_US:
     *and **%{remaining}** more songs*
   # Helper string representing a single queue entry (one song)
   queue_helper_entry: "%{pos}  `%{desc}`  (%{len})"
+  # Response to !clear
+  queue_clear: 🚮  Cleared the queue! (%{num} songs, %{total} total)
+  # Response to !skip (without argument)
+  skip_single: ⏭  Skipping the current song…
+  # Response to !skip (with number)
+  skip_to: ⏭  Skipping **%{num}** songs…
+  # Response to !shuffle
+  shuffle: 🔀  Everyday I'm shuffling
+  # Response when joining a channel
+  channel_join: 🌊  Joined channel *%{name}*
+  # Response when moving to a different channel
+  channel_move: 🌊  Moved to channel *%{name}*
+  # Response when moving but the bot is already in the specified channel
+  channel_already_in: 💧  I am already in *%{name}*
+  # Response when leaving a channel
+  channel_leave: 💧  Leaving channel *%{name}*
+  # Response to !shutdown
+  shutdown: ⚡  Shutting down, goodbye!
+  # Response if a general error occurs during a command
+  general_error: |-
+    🔥  Sorry, an error occurred while handling your command.
+    ```
+    %{message}
+    ```
