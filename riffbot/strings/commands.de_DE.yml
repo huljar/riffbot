@@ -4,4 +4,4 @@ de_DE:
   no_results: 😔 Keine Videos gefunden, sorry.
   current: |-
     __**Aktueller Song:**__
-    ▶  `%{desc}` (%{len})
+    ▶  `%{desc}`  (%{len})

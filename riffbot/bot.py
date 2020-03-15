@@ -40,7 +40,8 @@ def _on_song_start(ctx: commands.Context, sender: Player, song: Endpoint):
 
     async def exec():
         try:
-            await ctx.channel.edit(topic=f"▶  {song.get_song_description()}")
+            await ctx.channel.edit(topic=t("commands.channel_topic_playing", locale=ctx.guild.preferred_locale,
+                                           desc=song.get_song_description()))
         except discord.Forbidden:
             _logger.warning("Unable to edit channel description to current song (missing permission)")
 
@@ -85,7 +86,7 @@ async def play(ctx: commands.Context, *args):
                 cancel_leave_timer()
                 await ctx.send(t("commands.resume", locale=ctx.guild.preferred_locale))
                 try:
-                    await ctx.channel.edit(topic=t("commands.channel_topic", locale=ctx.guild.preferred_locale,
+                    await ctx.channel.edit(topic=t("commands.channel_topic_playing", locale=ctx.guild.preferred_locale,
                                                    desc=endpoint.get_song_description()))
                 except discord.Forbidden:
                     _logger.warning("Unable to edit channel description to current song (missing permission)")
@@ -118,10 +119,9 @@ async def play(ctx: commands.Context, *args):
                 # A song is already playing, reply with a different message in this case
                 position = song_queue.size() - len(endpoints) + 1
                 if len(endpoints) > 1:
-                    length = utils.to_human_readable_position(
-                        functools.reduce(lambda acc, val: acc + val, [e.get_length() for e in endpoints], 0))
+                    length = utils.to_human_readable_position(utils.get_total_length(endpoints))
                     reply = t("commands.enqueued_multiple", locale=ctx.guild.preferred_locale,
-                              num=len(endpoints), len=length, pos=position)
+                              num=len(endpoints), total=length, pos=position)
                 else:
                     length = utils.to_human_readable_position(endpoints[0].get_length())
                     reply = t("commands.enqueued_single", locale=ctx.guild.preferred_locale,
@@ -199,10 +199,9 @@ async def playnext(ctx: commands.Context, *args):
                               desc=endpoints[0].get_song_description(), len=length)
             else:
                 if len(endpoints) > 1:
-                    length = utils.to_human_readable_position(
-                        functools.reduce(lambda acc, val: acc + val, [e.get_length() for e in endpoints], 0))
+                    length = utils.to_human_readable_position(utils.get_total_length(endpoints))
                     reply = t("commands.enqueued_multiple", locale=ctx.guild.preferred_locale,
-                              num=len(endpoints), len=length, pos=1)
+                              num=len(endpoints), total=length, pos=1)
                 else:
                     length = utils.to_human_readable_position(endpoints[0].get_length())
                     reply = t("commands.enqueued_single", locale=ctx.guild.preferred_locale,
@@ -220,9 +219,10 @@ async def pause(ctx):
         _player.pause()
         endpoint = _player.get_current()
         if endpoint:
-            await ctx.send(f"⏸  Pausing…")
+            await ctx.send(t("commands.pause", locale=ctx.guild.preferred_locale))
             try:
-                await ctx.channel.edit(topic=f"⏸  {endpoint.get_song_description()}")
+                await ctx.channel.edit(topic=t("commands.channel_topic_paused", locale=ctx.guild.preferred_locale,
+                                               desc=endpoint.get_song_description()))
             except discord.Forbidden:
                 _logger.warning("Unable to edit channel description to current song (missing permission)")
 
@@ -243,12 +243,16 @@ async def radio(ctx: commands.Context):
                     radio_endpoints = [YouTubeEndpoint(video) for video in converters.to_youtube_videos([mix_url])
                                        if video.videoid != current_id]
                     _player.get_queue().enqueue(radio_endpoints)
-                    await ctx.send(f"Enqueued [{len(radio_endpoints)}] songs!")
+                    length = utils.to_human_readable_position(utils.get_total_length(radio_endpoints))
+                    await ctx.send(t("commands.radio", locale=ctx.guild.preferred_locale,
+                                     num=len(radio_endpoints), total=length))
                 except urllib.error.HTTPError as error:
-                    await ctx.send("There is no radio available for the current song :(" if error.code == 400
-                                   else f"HTTP error while fetching the playlist: {error.code} {error.reason}")
+                    if error.code == 400:
+                        await ctx.send(t("commands.radio_not_found", locale=ctx.guild.preferred_locale))
+                    else:
+                        raise error
             else:
-                await ctx.send("Radio is currently only supported for YouTube songs.")
+                await ctx.send(t("commands.radio_not_supported", locale=ctx.guild.preferred_locale))
 
 
 @bot.command(help="Seek to an approximate position in the current song.")
@@ -257,14 +261,14 @@ async def radio(ctx: commands.Context):
 async def seek(ctx, position: converters.to_position):
     reset_leave_timer()
     # Seeking is not yet supported in the player/endpoints, so cancel early
-    await ctx.send("Seeking is not yet supported, sorry!")
+    await ctx.send(t("commands.seek_not_supported", locale=ctx.guild.preferred_locale))
     return
 
     if not position:
         await ctx.send(f"Invalid position, use syntax 2:01 or 1:05:42 or similar.")
         return
     if _player:
-        await ctx.send("Seeking …")
+        await ctx.send("Seeking…")
         (h, m, s) = position
         try:
             _player.seek(h * 3600 + m * 60 + s)
@@ -290,17 +294,33 @@ async def current(ctx: commands.Context):
 @actions.log_command(_logger)
 async def queue(ctx):
     reset_leave_timer()
+    if not _player or not _player.get_current():
+        # Queue empty and nothing playing
+        await ctx.send(t("commands.queue_empty", locale=ctx.guild.preferred_locale, cmd_prefix="!"))
+        return
+    current = _player.get_current()
+    current_length = utils.to_human_readable_position(current.get_length())
+    current_string = t("commands.queue_helper_entry", locale=ctx.guild.preferred_locale,
+                       pos=utils.to_keycap_emojis(0), desc=current.get_song_description(), len=current_length)
     songs = _player.get_queue().list()
     if len(songs) == 0:
-        await ctx.send("No songs are currently enqueued!")
+        # Queue empty but something's playing
+        await ctx.send(t("commands.queue_single", locale=ctx.guild.preferred_locale,
+                         len=current_length, current=current_string))
+        return
+
+    # Queue not empty and something's playing
+    total_length = utils.to_human_readable_position(utils.get_total_length([current, *songs]))
+    next_string = "\n".join(
+        [t("commands.queue_helper_entry", locale=ctx.guild.preferred_locale, pos=utils.to_keycap_emojis(idx+1),
+           desc=song.get_song_description(), len=utils.to_human_readable_position(song.get_length()))
+         for idx, song in enumerate(songs[:9])])
+    if len(songs) <= 9:
+        await ctx.send(t("commands.queue_multiple", locale=ctx.guild.preferred_locale, num=1+len(songs),
+                         total=total_length, current=current_string, next=next_string))
     else:
-        # Build string to print the first 15 songs in the queue
-        string = functools.reduce(lambda acc, val: acc +
-                                  f"\n[{val[0]+1}]  {val[1].get_song_description()}", enumerate(songs[:15]), "")
-        # If there are more than 15 songs enqueued, add how many were not printed
-        if len(songs) > 15:
-            string += f"\n+ {len(songs) - 15} more songs"
-        await ctx.send(string[1:])  # [1:] to get rid of the first newline character
+        await ctx.send(t("commands.queue_many", locale=ctx.guild.preferred_locale, num=1+len(songs),
+                         total=total_length, current=current_string, next=next_string, remaining=len(songs)-9))
 
 
 @bot.command(help="Clear the song queue of its current contents.")

@@ -1,23 +1,27 @@
 en_US:
   # Response to !play (without arguments) when the current song is paused
   resume: ▶  **Resuming…**
-  # The channel topic that the bot uses to show the currently playing song
-  channel_topic: ▶  %{desc}
+  # Response to !pause when there is a song playing
+  pause: ⏸  **Pausing…**
+  # The channel topic that the bot uses to show the current song (playing)
+  channel_topic_playing: ▶  %{desc}
+  # The channel topic that the bot uses to show the current song (paused)
+  channel_topic_paused: ⏸  %{desc}
   # Response to !play/!playnow/!playnext when the search yielded no results
   no_results: 😔 Sorry, no videos found.
   # Response to !play/!playnow/!playnext if the song is played immediately (and there was only 1 result)
   play_single: |-
     __**Now playing:**__
-    ▶  `%{desc}` (%{len})
+    ▶  `%{desc}`  (%{len})
   # Response to !play/!playnext if the song is played immediately (and there were multiple results)
   play_multiple: |-
     __**Now playing:**__
-    ▶  `%{desc}` (%{len})
+    ▶  `%{desc}`  (%{len})
     *and enqueued **%{more}** more songs*
   # Response to !playnow if there were multiple results
   play_now_multiple: |-
     __**Now playing:**__
-    ▶  `%{desc}` (%{len})
+    ▶  `%{desc}`  (%{len})
     *and enqueued **%{more}** more songs at the front*
   # Response to !play/!playnext if the song is not played immediately (and there was only 1 result)
   enqueued_single: |-
@@ -27,9 +31,54 @@ en_US:
   # Response to !play/!playnext if the song is not played immediately (end there were multiple results)
   enqueued_multiple: |-
     __**Enqueued:**__
-    ↩  `%{num} songs`  (%{len} total)
+    ↩  `%{num} songs`  (%{total} total)
     *at position **%{pos}***
   # Response to !current (information about the currently playing song)
   current: |-
     __**Currently playing:**__
-    ▶  `%{desc}` (%{len})
+    ▶  `%{desc}`  (%{len})
+  # Response to !radio when supported
+  radio: |-
+    __**Enqueued mix:**__
+    📻  `%{num} songs`  (%{total} total)
+    *derived from current song*
+  # Response to !radio if supported but no radio is found
+  radio_not_found: 😔 Sorry, there is no radio available for the current song.
+  # Response to !radio if not supported
+  radio_not_supported: 😔 Sorry, radio is only supported for YouTube songs.
+  # Response to !seek (not yet supported)
+  seek_not_supported: 😔 Sorry, seeking is not yet supported.
+  # Response to !queue when the queue is empty and no song is playing
+  queue_empty: |-
+    __**Queue:**__
+    📥  The queue is empty! Why not search for a song with `%{cmd_prefix}play`?
+  # Response to !queue when the queue is empty but there is a song playing
+  queue_single: |-
+    __**Queue:**__
+    📥  `1 song`  (%{len})
+
+    **Current:**
+    %{current}
+  # Response to !queue when there are songs enqueued (and something is playing)
+  queue_multiple: |-
+    __**Queue:**__
+    📥  `%{num} songs`  (%{total} total)
+
+    **Current:**
+    %{current}
+
+    **Next up:**
+    %{next}
+  # Response to !queue when there are too many songs enqueued to print them all
+  queue_many: |-
+    __**Queue:**__
+    📥  `%{num} songs`  (%{total} total)
+
+    **Current:**
+    %{current}
+
+    **Next up:**
+    %{next}
+    *and **%{remaining}** more songs*
+  # Helper string representing a single queue entry (one song)
+  queue_helper_entry: "%{pos}  `%{desc}`  (%{len})"
