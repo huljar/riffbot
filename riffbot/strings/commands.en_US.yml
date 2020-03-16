@@ -8,7 +8,7 @@ en_US:
   # The channel topic that the bot uses to show the current song (paused)
   channel_topic_paused: ⏸  %{desc}
   # Response to !play/!playnow/!playnext when the search yielded no results
-  no_results: 😔 Sorry, no videos found.
+  play_no_results: 😔 Sorry, no videos found.
   # Response to !play/!playnow/!playnext if the song is played immediately (and there was only 1 result)
   play_single: |-
     __**Now playing:**__
@@ -19,7 +19,7 @@ en_US:
     ▶  `%{desc}`  (%{len})
     *and enqueued **%{more}** more songs*
   # Response to !playnow if there were multiple results
-  play_now_multiple: |-
+  playnow_multiple: |-
     __**Now playing:**__
     ▶  `%{desc}`  (%{len})
     *and enqueued **%{more}** more songs at the front*
@@ -37,6 +37,17 @@ en_US:
   current: |-
     __**Currently playing:**__
     ▶  `%{desc}`  (%{len})
+  # Response to !say when the service is not available
+  say_no_results: 😔 Sorry, text to speech is not available.
+  # Response to !say if it is read immediately
+  say_now: |-
+    __**Now reading:**__
+    🎙️  `%{text}`
+  # Response to !say if it is not read immediately
+  say_enqueued: |-
+    __**Enqueued reading:**__
+    📜  `%{text}`
+    *at position **%{pos}***
   # Response to !radio when supported
   radio: |-
     __**Enqueued mix:**__
@@ -62,7 +73,7 @@ en_US:
   # Response to !queue when there are songs enqueued (and something is playing)
   queue_multiple: |-
     __**Queue:**__
-    📥  `%{num} songs`  (%{total} total)
+    📥  `%{num} songs`  (~%{total} total)
 
     **Current:**
     %{current}
@@ -72,7 +83,7 @@ en_US:
   # Response to !queue when there are too many songs enqueued to print them all
   queue_many: |-
     __**Queue:**__
-    📥  `%{num} songs`  (%{total} total)
+    📥  `%{num} songs`  (~%{total} total)
 
     **Current:**
     %{current}
@@ -83,7 +94,7 @@ en_US:
   # Helper string representing a single queue entry (one song)
   queue_helper_entry: "%{pos}  `%{desc}`  (%{len})"
   # Response to !clear
-  queue_clear: 🚮  Cleared the queue! (%{num} songs, %{total} total)
+  queue_clear: 🚮  Cleared the queue! (%{num} songs, ~%{total} total)
   # Response to !skip (without argument)
   skip_single: ⏭  Skipping the current song…
   # Response to !skip (with number)

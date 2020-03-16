@@ -1,7 +1,7 @@
 de_DE:
   resume: ▶  **Fortsetzen…**
   channel_topic: ▶  %{topic}
-  no_results: 😔 Keine Videos gefunden, sorry.
+  play_no_results: 😔 Keine Videos gefunden, sorry.
   current: |-
     __**Aktueller Song:**__
     ▶  `%{desc}`  (%{len})

@@ -32,7 +32,7 @@ class TextToSpeechEndpoint(Endpoint):
                 yield session.get(chunk_url).content
 
     def get_song_description(self) -> str:
-        return f"Text to speech: '{f'{self._text[:35]}…' if len(self._text) > 37 else self._text}'"
+        return f"Text to speech: \"{f'{self._text[:35]}…' if len(self._text) > 37 else self._text}\""
 
     def get_bit_rate(self) -> Optional[int]:
         return None

@@ -12,6 +12,7 @@ from i18n import t
 
 from riffbot.audio.player import Player
 from riffbot.endpoints.endpoint import Endpoint
+from riffbot.endpoints.texttospeech import TextToSpeechEndpoint
 from riffbot.endpoints.youtube import YouTubeEndpoint
 from riffbot.utils import actions, checks, converters, utils
 from riffbot.utils.timer import Timer
@@ -96,7 +97,7 @@ async def play(ctx: commands.Context, *args):
         # Not using "with ctx.typing()" because the typing indicator sometimes lingered too long after the reply was
         # already sent
         await ctx.trigger_typing()
-        reply = t("commands.no_results", locale=ctx.guild.preferred_locale)
+        reply = t("commands.play_no_results", locale=ctx.guild.preferred_locale)
         # Can't specify a converter directly for a variable number of arguments unfortunately
         videos = converters.to_youtube_videos(args)
         if ctx.voice_client is None:
@@ -111,7 +112,7 @@ async def play(ctx: commands.Context, *args):
                 _player.play()
                 length = utils.to_human_readable_position(endpoints[0].get_length())
                 if len(endpoints) > 1:
-                    reply = t("commands.play_now_multiple", locale=ctx.guild.preferred_locale,
+                    reply = t("commands.playnow_multiple", locale=ctx.guild.preferred_locale,
                               desc=endpoints[0].get_song_description(), len=length, more=len(endpoints)-1)
                 else:
                     reply = t("commands.play_single", locale=ctx.guild.preferred_locale,
@@ -141,7 +142,7 @@ async def playnow(ctx: commands.Context, *args):
         # Not using "with ctx.typing()" because the typing indicator sometimes lingered too long after the reply was
         # already sent
         await ctx.trigger_typing()
-        reply = t("commands.no_results", locale=ctx.guild.preferred_locale)
+        reply = t("commands.play_no_results", locale=ctx.guild.preferred_locale)
         # Can't specify a converter directly for a variable number of arguments unfortunately
         videos = converters.to_youtube_videos(args)
         if ctx.voice_client is None:
@@ -159,7 +160,7 @@ async def playnow(ctx: commands.Context, *args):
                 _player.play()
             length = utils.to_human_readable_position(endpoints[0].get_length())
             if len(endpoints) > 1:
-                reply = t("commands.play_now_multiple", locale=ctx.guild.preferred_locale,
+                reply = t("commands.playnow_multiple", locale=ctx.guild.preferred_locale,
                           desc=endpoints[0].get_song_description(), len=length, more=len(endpoints)-1)
             else:
                 reply = t("commands.play_single", locale=ctx.guild.preferred_locale,
@@ -178,7 +179,7 @@ async def playnext(ctx: commands.Context, *args):
         # Not using "with ctx.typing()" because the typing indicator sometimes lingered too long after the reply was
         # already sent
         await ctx.trigger_typing()
-        reply = t("commands.no_results", locale=ctx.guild.preferred_locale)
+        reply = t("commands.play_no_results", locale=ctx.guild.preferred_locale)
         # Can't specify a converter directly for a variable number of arguments unfortunately
         videos = converters.to_youtube_videos(args)
         if ctx.voice_client is None:
@@ -208,6 +209,31 @@ async def playnext(ctx: commands.Context, *args):
                     reply = t("commands.enqueued_single", locale=ctx.guild.preferred_locale,
                               desc=endpoints[0].get_song_description(), len=length, pos=1)
         # Send the reply (also clearing the typing status from the channel)
+        await ctx.send(reply)
+
+
+@bot.command(help="Say anything via text to speech")
+@commands.guild_only()
+@actions.log_command(_logger)
+async def say(ctx: commands.Context, *args: str):
+    reset_leave_timer()
+    if len(args) > 0:
+        await ctx.trigger_typing()
+        reply = t("commands.say_no_results", locale=ctx.guild.preferred_locale)
+        if ctx.voice_client is None:
+            await join_channel(ctx)
+        cancel_leave_timer()
+        text = " ".join(args)
+        text_abbrev = f"{text[:50]}…" if len(text) > 52 else text
+        endpoint = TextToSpeechEndpoint(text)
+        song_queue = _player.get_queue()
+        song_queue.enqueue(endpoint)
+        if not _player.get_current():
+            _player.play()
+            reply = t("commands.say_now", locale=ctx.guild.preferred_locale, text=text_abbrev)
+        else:
+            reply = t("commands.say_enqueued", locale=ctx.guild.preferred_locale,
+                      text=text_abbrev, pos=song_queue.size())
         await ctx.send(reply)
 
 
