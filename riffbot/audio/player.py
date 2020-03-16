@@ -120,7 +120,7 @@ class Player:
 def _downloader(endpoint: Endpoint, pipe_write: int, halt_event: threading.Event):
     _logger.debug(f"Downloader thread started for \"{endpoint.get_song_description()}\"")
     try:
-        for chunk in endpoint.stream_chunks(endpoint.get_preferred_chunk_size()):
+        for chunk in endpoint.stream_chunks():
             if halt_event.is_set():
                 _logger.debug("Downloader received halt event")
                 break

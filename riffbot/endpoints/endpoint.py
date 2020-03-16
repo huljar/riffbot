@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Generator
+from typing import Generator, Optional
 
 
 class InvalidEndpointError(Exception):
@@ -20,18 +20,14 @@ class Endpoint(ABC):
         pass
 
     @abstractmethod
-    def get_preferred_chunk_size(self) -> int:
-        pass
-
-    @abstractmethod
     def get_song_description(self) -> str:
         pass
 
     @abstractmethod
-    def get_bit_rate(self) -> int:
+    def get_bit_rate(self) -> Optional[int]:
         pass
 
     @abstractmethod
-    def get_length(self) -> int:
+    def get_length(self) -> Optional[int]:
         """Get the length of the song in seconds"""
         pass

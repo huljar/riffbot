@@ -1,8 +1,9 @@
 import logging
+import re
+from typing import Generator, Optional, Union
+
 import pafy
 import requests
-from typing import Generator, Union
-import re
 
 from .endpoint import Endpoint, InvalidEndpointError
 
@@ -12,6 +13,8 @@ _range_variants = {
     "&range={}-{}": re.compile("^https://.*\\.googlevideo\\.com/videoplayback\\?([^/]+=[^/]*&)*[^/]+=[^/]*$"),
     "range/{}-{}/": re.compile("^https://.*\\.googlevideo\\.com/videoplayback/([^&=?]+/)+$")
 }
+
+CHUNK_SIZE = 65536  # 64 KB
 
 
 class YouTubeEndpoint(Endpoint):
@@ -28,7 +31,7 @@ class YouTubeEndpoint(Endpoint):
     def is_initialized(self):
         return self._initialized
 
-    def stream_chunks(self, chunk_size: int) -> Generator[bytes, None, None]:
+    def stream_chunks(self) -> Generator[bytes, None, None]:
         if not self.is_initialized():
             self.initialize()
 
@@ -36,24 +39,20 @@ class YouTubeEndpoint(Endpoint):
         template = self._get_url_variant(url)
         file_size = self._stream.get_filesize()
         with requests.Session() as session:
-            for i in range(0, file_size, chunk_size):
-                chunk_url = url + template.format(i, min(i + chunk_size - 1, file_size - 1))
-                response = session.get(chunk_url)
-                yield response.content
-
-    def get_preferred_chunk_size(self) -> int:
-        return 65536  # 64 KB
+            for i in range(0, file_size, CHUNK_SIZE):
+                chunk_url = url + template.format(i, min(i + CHUNK_SIZE - 1, file_size - 1))
+                yield session.get(chunk_url).content
 
     def get_song_description(self) -> str:
         return self._video.title
 
-    def get_bit_rate(self) -> int:
+    def get_bit_rate(self) -> Optional[int]:
         if not self.is_initialized():
             self.initialize()
 
         return self._stream.rawbitrate
 
-    def get_length(self) -> int:
+    def get_length(self) -> Optional[int]:
         return self._video.length
 
     def get_youtube_id(self) -> str:

@@ -89,7 +89,7 @@ en_US:
   # Response to !skip (with number)
   skip_to: ⏭  Skipping **%{num}** songs…
   # Response to !shuffle
-  shuffle: 🔀  Everyday I'm shuffling
+  shuffle: 🔀  Everyday I'm shuffling (the queue).
   # Response when joining a channel
   channel_join: 🌊  Joined channel *%{name}*
   # Response when moving to a different channel

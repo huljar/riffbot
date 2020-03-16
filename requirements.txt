@@ -1,6 +1,7 @@
 blinker
 discord.py
 git+https://github.com/mps-youtube/pafy#egg=pafy
+gTTS
 PyNaCl
 python-dotenv
 python-i18n [YAML]
