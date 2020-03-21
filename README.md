@@ -26,8 +26,8 @@ To run Riffbot, you need to register a bot with your Discord server first and ob
 how this is done. The bot needs at permissions to view channels, manage the channel where it will receive commands, send
 messages to that same channel, connect to voice, and speak.
 
-The token is used by the bot to authenticate itself with Discord. Riffbot reads the token from the file `src/.env` that
-you'll have to create. Put the following contents into it:
+The token is used by the bot to authenticate itself with Discord. Riffbot reads the token from the file `riffbot/.env`
+that you'll have to create. Put the following contents into it:
 
 ```
 DISCORD_TOKEN=<your_token>
@@ -37,15 +37,27 @@ and replace `<your_token>` with your personal token.
 
 # Run the bot
 
-You can run the bot using `make run`. If everything works, a console message should appear after a short time that the
-bot has logged on to Discord.
+You can run the bot using `make run`. If everything works, you should see the bot online in Discord shortly after. You
+can also use `make run-debug` instead if you want debug logging on the console.
 
-The bot is currently not suitable for multi-server operation – one instance of the bot should only serve one Discord
+The bot is currently not suited for multi-server operation – one instance of the bot should only serve one Discord
 guild.
 
 ## Run in background as a systemd service
 
-*in progress* `make service VENV=path/to/your/venv` then `systemctl start riffbot`
+If you want to run Riffbot unattended for a longer period of time, it is recommended to run it in the background, e.g.
+as a systemd service. Riffbot can easily be installed as such a service. There are currently two variants:
+
+* **User service**
+Run `make service VENV=path/to/your/venv` as a non-root user with `VENV` pointing to the virtual environment that the
+bot is supposed to run in. This will place a service file into `~/.config/systemd/user/`. Then, you can run
+`systemctl --user start riffbot` to run the bot in the background as the current user.
+
+**System-wide service**
+Run `make service VENV=path/to/your/venv XUSER=username` as root with `VENV` representing the path of the virtual
+environment (same as user service) and `XUSER` set to the username that the bot will run as. It is highly recommended to
+use a dedicated, non-root user for `XUSER` for security reasons. Then, you can run `systemctl start riffbot` to run the
+bot in the background and/or `systemctl enable riffbot` to have riffbot run automatically when the system boots.
 
 # License
 
