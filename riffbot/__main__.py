@@ -1,5 +1,3 @@
-import argparse
-from enum import Enum
 import logging
 import os
 import pathlib
@@ -8,14 +6,7 @@ from dotenv import load_dotenv
 import i18n
 
 from riffbot.bot import bot
-
-
-class LogLevel(Enum):
-    DEBUG = logging.DEBUG
-    INFO = logging.INFO
-    WARNING = logging.WARNING
-    ERROR = logging.ERROR
-    CRITICAL = logging.CRITICAL
+from riffbot.options import LogLevel, parse_options
 
 
 class TokenNotFoundError(Exception):
@@ -23,15 +14,11 @@ class TokenNotFoundError(Exception):
 
 
 def main():
-    # Parse command line arguments
-    cmdparser = argparse.ArgumentParser(description="Riffbot - Discord Music Bot")
-    cmdparser.add_argument("--log", nargs=1, default=[LogLevel.WARNING.name], type=str,
-                           choices=[level.name for level in list(LogLevel)], help="log level (default: WARNING)",
-                           metavar="LEVEL")
-    args = cmdparser.parse_args()
+    # Get options (combined from defaults, config file, and command line arguments)
+    options = parse_options()
 
     # Set up logging
-    level = LogLevel[args.log[0].upper()].value
+    level = LogLevel[options.log_level].value
     logger = logging.getLogger(__package__)
     handler = logging.StreamHandler()
     formatter = logging.Formatter("%(asctime)s (%(levelname)s) [%(name)s] %(message)s", "%m/%d/%Y %H:%M:%S")
@@ -40,6 +27,8 @@ def main():
     handler.setLevel(level)
     logger.addHandler(handler)
     logger.setLevel(level)
+
+    logger.debug(f"Combined options: {vars(options)}")
 
     # Set up i18n
     i18n.set("locale", "en_US")
@@ -54,8 +43,10 @@ def main():
     token = os.getenv("DISCORD_TOKEN")
     if not token:
         raise TokenNotFoundError()
+    return
 
-    # Run the bot
+    # Set options and run the bot
+    bot.command_prefix = options.command_prefix
     bot.run(token)
 
 

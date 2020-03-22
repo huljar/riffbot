@@ -19,7 +19,7 @@ from riffbot.utils.timer import Timer
 
 _logger = logging.getLogger(__name__)
 
-bot = commands.Bot(command_prefix="!")
+bot: commands.Bot = commands.Bot(command_prefix="!")
 
 _player: Optional[Player] = None
 _leave_timer: Optional[Timer] = None
