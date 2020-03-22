@@ -43,7 +43,6 @@ def main():
     token = os.getenv("DISCORD_TOKEN")
     if not token:
         raise TokenNotFoundError()
-    return
 
     # Set options and run the bot
     bot.command_prefix = options.command_prefix

@@ -18,7 +18,7 @@ run:
 	@python3 -m riffbot
 
 run-debug:
-	@python3 -m riffbot --log DEBUG
+	@python3 -m riffbot -l DEBUG
 
 test:
 	@PYTHONPATH=riffbot python3 -m unittest discover -s tests/unit

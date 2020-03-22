@@ -73,7 +73,7 @@ async def on_ready():
     _logger.info(f"Logged on as {bot.user} :)")
 
 
-@bot.command(help="Search YouTube for a song and play/enqueue it")
+@bot.command(help="Search YouTube for a song and play/enqueue it", aliases=["p"])
 @commands.guild_only()
 @checks.is_in_voice_channel()
 @actions.log_command(_logger)
@@ -132,7 +132,7 @@ async def play(ctx: commands.Context, *args):
         await ctx.send(reply)
 
 
-@bot.command(help="Search YouTube for a song and and play it right now, skipping the current song")
+@bot.command(help="Search YouTube for a song and and play it right now, skipping the current song", aliases=["pn"])
 @commands.guild_only()
 @actions.log_command(_logger)
 async def playnow(ctx: commands.Context, *args):
@@ -169,7 +169,7 @@ async def playnow(ctx: commands.Context, *args):
         await ctx.send(reply)
 
 
-@bot.command(help="Search YouTube for a song and and play it after the current song")
+@bot.command(help="Search YouTube for a song and and play it after the current song", aliases=["px"])
 @commands.guild_only()
 @actions.log_command(_logger)
 async def playnext(ctx: commands.Context, *args):
@@ -254,7 +254,7 @@ async def pause(ctx):
                 _logger.warning("Unable to edit channel description to current song (missing permission)")
 
 
-@bot.command(help="Enqueue a mix of songs similar to the current one (YouTube only).")
+@bot.command(help="Enqueue a mix of songs similar to the current one (YouTube only).", aliases=["r"])
 @commands.guild_only()
 @actions.log_command(_logger)
 async def radio(ctx: commands.Context):
@@ -303,7 +303,7 @@ async def seek(ctx, position: converters.to_position):
             await ctx.send("Position is out of bounds!")
 
 
-@bot.command(help="Display information on the currently playing song")
+@bot.command(help="Display information on the currently playing song", aliases=["c"])
 @commands.guild_only()
 @actions.log_command(_logger)
 async def current(ctx: commands.Context):
@@ -316,7 +316,7 @@ async def current(ctx: commands.Context):
                              desc=song.get_song_description(), len=length))
 
 
-@bot.command(help="Show the current contents of the queue.")
+@bot.command(help="Show the current contents of the queue.", aliases=["q"])
 @commands.guild_only()
 @actions.log_command(_logger)
 async def queue(ctx):
@@ -350,7 +350,7 @@ async def queue(ctx):
                          total=total_length, current=current_string, next=next_string, remaining=len(songs)-9))
 
 
-@bot.command(help="Clear the song queue of its current contents.")
+@bot.command(help="Clear the song queue of its current contents.", aliases=["cl"])
 @commands.guild_only()
 @actions.log_command(_logger)
 async def clear(ctx):
@@ -363,7 +363,7 @@ async def clear(ctx):
         await ctx.send(t("commands.queue_clear", locale=ctx.guild.preferred_locale, num=num_songs, total=total_length))
 
 
-@bot.command(help="Skip the current song.")
+@bot.command(help="Skip the current song.", aliases=["s"])
 @commands.guild_only()
 @actions.log_command(_logger)
 async def skip(ctx, number_of_songs: Optional[int]):
@@ -404,7 +404,7 @@ async def follow(ctx: commands.Context):
     await join_channel(ctx, send_info=True)
 
 
-@bot.command(help="Leave the current voice channel.")
+@bot.command(help="Leave the current voice channel.", aliases=["l"])
 @commands.guild_only()
 @actions.log_command(_logger)
 async def leave(ctx):
