@@ -101,6 +101,8 @@ en_US:
   skip_to: ⏭  Skipping **%{num}** songs…
   # Response to !shuffle
   shuffle: 🔀  Everyday I'm shuffling (the queue).
+  # Response to !purge
+  purge: 🧹  Purged **%{num}** messages
   # Response when joining a channel
   channel_join: 🌊  Joined channel *%{name}*
   # Response when moving to a different channel
@@ -111,9 +113,15 @@ en_US:
   channel_leave: 💧  Leaving channel *%{name}*
   # Response to !shutdown
   shutdown: ⚡  Shutting down, goodbye!
+
   # Response if a general error occurs during a command
   general_error: |-
     🔥  Sorry, an error occurred while handling your command.
+    ```
+    %{message}
+    ```
+  missing_permission: |-
+    🚫  I am missing the permissions to perform this action.
     ```
     %{message}
     ```

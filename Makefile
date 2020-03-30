@@ -15,10 +15,10 @@ install-dev:
 	@pip3 install -U -r requirements-dev.txt
 
 run:
-	@python3 -m riffbot
+	@python3 -m riffbot -c config.ini
 
 run-debug:
-	@python3 -m riffbot -l DEBUG
+	@python3 -m riffbot -c config.ini -l DEBUG
 
 test:
 	@PYTHONPATH=riffbot python3 -m unittest discover -s tests/unit

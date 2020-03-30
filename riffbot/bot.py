@@ -394,6 +394,19 @@ async def shuffle(ctx: commands.Context):
         await ctx.send(t("commands.shuffle", locale=ctx.guild.preferred_locale))
 
 
+@bot.command(help="Clear commands and the bot's responses from the channel history")
+@commands.guild_only()
+@actions.log_command(_logger)
+async def purge(ctx: commands.Context):
+    reset_leave_timer()
+    try:
+        deleted = await ctx.channel.purge(
+            check=lambda m: m.content.startswith(bot.command_prefix) or m.author == bot.user)
+        await ctx.send(t("commands.purge", locale=ctx.guild.preferred_locale, num=len(deleted)))
+    except discord.Forbidden as e:
+        await ctx.send(t("commands.missing_permission", locale=ctx.guild.preferred_locale, message=e.text))
+
+
 @bot.command(help="Move to the user's current voice channel.")
 @commands.guild_only()
 @checks.is_in_voice_channel()
