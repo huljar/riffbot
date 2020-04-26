@@ -435,6 +435,12 @@ async def shutdown(ctx):
     await bot.close()
 
 
+@bot.command(help="Get youtube stream link (debugging only)")
+@commands.guild_only()
+async def streamlink(ctx: commands.Context):
+    await ctx.send(f"Current song link: {_player.get_current()._stream.url_https}")
+
+
 @bot.event
 async def on_command_error(ctx, error: BaseException):
     _logger.error(f"Exception occurred during command: {error}")
