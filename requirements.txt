@@ -1,10 +1,10 @@
 blinker
 discord.py
-git+https://github.com/mps-youtube/pafy#egg=pafy
 gTTS
+git+https://github.com/mps-youtube/pafy#egg=pafy
 PyNaCl
 python-dotenv
 python-i18n [YAML]
 requests
-youtube-dl
+git+https://github.com/ytdl-org/youtube-dl#egg=youtube-dl
 youtube-search

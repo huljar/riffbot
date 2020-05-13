@@ -1,0 +1,3 @@
+en_US:
+  # Text to show in place of a song length if it is not available/unknown
+  unknown_length_placeholder: unknown

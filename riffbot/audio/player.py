@@ -8,6 +8,7 @@ from blinker import signal
 import discord
 
 from riffbot.endpoints.endpoint import Endpoint
+from riffbot.utils.duration import Duration
 from .songqueue import SongQueue
 
 _logger = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ class Player:
         self._song_queue = SongQueue()
         self._current = None
         self._stop_after_current = False
+        self._song_timer = Duration()
 
     def __del__(self):
         _logger.debug("Destroying")
@@ -29,6 +31,7 @@ class Player:
         if self._voice_client.is_paused():
             _logger.debug("Resuming playback")
             self._voice_client.resume()
+            self._song_timer.start()
         elif not self._voice_client.is_playing():
             _logger.debug("Starting playback")
             if self._song_queue.size() > 0:
@@ -38,6 +41,7 @@ class Player:
         if self._voice_client.is_playing():
             _logger.debug("Pausing playback")
             self._voice_client.pause()
+            self._song_timer.pause()
 
     def stop(self):
         if self._voice_client.is_playing() or self._voice_client.is_paused():
@@ -58,6 +62,9 @@ class Player:
 
     def get_current(self) -> Optional[Endpoint]:
         return self._current
+
+    def get_playtime(self) -> float:
+        return self._song_timer.get()
 
     def get_queue(self) -> SongQueue:
         return self._song_queue
@@ -101,6 +108,7 @@ class Player:
 
         # Start playing
         self._voice_client.play(audio_source, after=callback)
+        self._song_timer.start()
         _logger.debug("Playback initialized")
 
     async def _on_song_over(self):
@@ -108,6 +116,9 @@ class Player:
 
         # Emit event that a song finished
         signal("player_song_stop").send(self, is_last=(self._song_queue.size() == 0))
+
+        # Reset song timer
+        self._song_timer.reset()
 
         # Play next song if there is one in the queue
         if self._stop_after_current:

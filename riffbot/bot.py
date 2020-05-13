@@ -110,7 +110,7 @@ async def play(ctx: commands.Context, *args):
             if not _player.get_current():
                 # No song is currently playing, so start playback and reply with appropriate message
                 _player.play()
-                length = utils.to_human_readable_position(endpoints[0].get_length())
+                length = utils.to_human_readable_position(endpoints[0].get_length(), ctx.guild.preferred_locale)
                 if len(endpoints) > 1:
                     reply = t("commands.playnow_multiple", locale=ctx.guild.preferred_locale,
                               desc=endpoints[0].get_song_description(), len=length, more=len(endpoints)-1)
@@ -121,11 +121,12 @@ async def play(ctx: commands.Context, *args):
                 # A song is already playing, reply with a different message in this case
                 position = song_queue.size() - len(endpoints) + 1
                 if len(endpoints) > 1:
-                    length = utils.to_human_readable_position(utils.get_total_length(endpoints))
+                    length = utils.to_human_readable_position(
+                        utils.get_total_length(endpoints), ctx.guild.preferred_locale)
                     reply = t("commands.enqueued_multiple", locale=ctx.guild.preferred_locale,
                               num=len(endpoints), total=length, pos=position)
                 else:
-                    length = utils.to_human_readable_position(endpoints[0].get_length())
+                    length = utils.to_human_readable_position(endpoints[0].get_length(), ctx.guild.preferred_locale)
                     reply = t("commands.enqueued_single", locale=ctx.guild.preferred_locale,
                               desc=endpoints[0].get_song_description(), len=length, pos=position)
         # Send the reply (also clearing the typing status from the channel)
@@ -158,7 +159,7 @@ async def playnow(ctx: commands.Context, *args):
             else:
                 # No song is playing, so start playback now
                 _player.play()
-            length = utils.to_human_readable_position(endpoints[0].get_length())
+            length = utils.to_human_readable_position(endpoints[0].get_length(), ctx.guild.preferred_locale)
             if len(endpoints) > 1:
                 reply = t("commands.playnow_multiple", locale=ctx.guild.preferred_locale,
                           desc=endpoints[0].get_song_description(), len=length, more=len(endpoints)-1)
@@ -192,7 +193,7 @@ async def playnext(ctx: commands.Context, *args):
             if not _player.get_current():
                 # No song is playing, so start playback now
                 _player.play()
-                length = utils.to_human_readable_position(endpoints[0].get_length())
+                length = utils.to_human_readable_position(endpoints[0].get_length(), ctx.guild.preferred_locale)
                 if len(endpoints) > 1:
                     reply = t("commands.play_multiple", locale=ctx.guild.preferred_locale,
                               desc=endpoints[0].get_song_description(), len=length, more=len(endpoints)-1)
@@ -201,11 +202,12 @@ async def playnext(ctx: commands.Context, *args):
                               desc=endpoints[0].get_song_description(), len=length)
             else:
                 if len(endpoints) > 1:
-                    length = utils.to_human_readable_position(utils.get_total_length(endpoints))
+                    length = utils.to_human_readable_position(
+                        utils.get_total_length(endpoints), ctx.guild.preferred_locale)
                     reply = t("commands.enqueued_multiple", locale=ctx.guild.preferred_locale,
                               num=len(endpoints), total=length, pos=1)
                 else:
-                    length = utils.to_human_readable_position(endpoints[0].get_length())
+                    length = utils.to_human_readable_position(endpoints[0].get_length(), ctx.guild.preferred_locale)
                     reply = t("commands.enqueued_single", locale=ctx.guild.preferred_locale,
                               desc=endpoints[0].get_song_description(), len=length, pos=1)
         # Send the reply (also clearing the typing status from the channel)
@@ -270,7 +272,8 @@ async def radio(ctx: commands.Context):
                     radio_endpoints = [YouTubeEndpoint(video) for video in converters.to_youtube_videos([mix_url])
                                        if video.videoid != current_id]
                     _player.get_queue().enqueue(radio_endpoints)
-                    length = utils.to_human_readable_position(utils.get_total_length(radio_endpoints))
+                    length = utils.to_human_readable_position(
+                        utils.get_total_length(radio_endpoints), ctx.guild.preferred_locale)
                     await ctx.send(t("commands.radio", locale=ctx.guild.preferred_locale,
                                      num=len(radio_endpoints), total=length))
                 except urllib.error.HTTPError as error:
@@ -311,9 +314,12 @@ async def current(ctx: commands.Context):
     if _player:
         song = _player.get_current()
         if song:
-            length = utils.to_human_readable_position(song.get_length())
+            playtime = utils.to_human_readable_position(_player.get_playtime(), ctx.guild.preferred_locale)
+            length = utils.to_human_readable_position(song.get_length(), ctx.guild.preferred_locale)
             await ctx.send(t("commands.current", locale=ctx.guild.preferred_locale,
-                             desc=song.get_song_description(), len=length))
+                             desc=song.get_song_description(), pos=playtime, len=length))
+            return
+    await ctx.send(t("commands.current_no_song", locale=ctx.guild.preferred_locale))
 
 
 @bot.command(help="Show the current contents of the queue.", aliases=["q"])
@@ -326,7 +332,7 @@ async def queue(ctx):
         await ctx.send(t("commands.queue_empty", locale=ctx.guild.preferred_locale, cmd_prefix="!"))
         return
     current = _player.get_current()
-    current_length = utils.to_human_readable_position(current.get_length())
+    current_length = utils.to_human_readable_position(current.get_length(), ctx.guild.preferred_locale)
     current_string = t("commands.queue_helper_entry", locale=ctx.guild.preferred_locale,
                        pos=utils.to_keycap_emojis(0), desc=current.get_song_description(), len=current_length)
     songs = _player.get_queue().list()
@@ -337,10 +343,12 @@ async def queue(ctx):
         return
 
     # Queue not empty and something's playing
-    total_length = utils.to_human_readable_position(utils.get_total_length([current, *songs]))
+    total_length = utils.to_human_readable_position(
+        utils.get_total_length([current, *songs]), ctx.guild.preferred_locale)
     next_string = "\n".join(
         [t("commands.queue_helper_entry", locale=ctx.guild.preferred_locale, pos=utils.to_keycap_emojis(idx+1),
-           desc=song.get_song_description(), len=utils.to_human_readable_position(song.get_length()))
+           desc=song.get_song_description(),
+           len=utils.to_human_readable_position(song.get_length(), ctx.guild.preferred_locale))
          for idx, song in enumerate(songs[:9])])
     if len(songs) <= 9:
         await ctx.send(t("commands.queue_multiple", locale=ctx.guild.preferred_locale, num=1+len(songs),
@@ -358,7 +366,7 @@ async def clear(ctx):
     if _player:
         queue = _player.get_queue()
         num_songs = queue.size()
-        total_length = utils.to_human_readable_position(queue.get_total_length())
+        total_length = utils.to_human_readable_position(queue.get_total_length(), ctx.guild.preferred_locale)
         queue.clear()
         await ctx.send(t("commands.queue_clear", locale=ctx.guild.preferred_locale, num=num_songs, total=total_length))
 

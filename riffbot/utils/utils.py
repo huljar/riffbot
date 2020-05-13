@@ -1,6 +1,8 @@
 import functools
 import math
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Union
+
+from i18n import t
 
 from riffbot.endpoints.endpoint import Endpoint
 
@@ -8,9 +10,10 @@ _digits = {"0": "0️⃣", "1": "1️⃣", "2": "2️⃣", "3": "3️⃣", "4": 
            "5": "5️⃣", "6": "6️⃣", "7": "7️⃣", "8": "8️⃣", "9": "9️⃣"}
 
 
-def to_human_readable_position(length: Optional[int]) -> str:
+def to_human_readable_position(length: Optional[Union[int, float]], locale: str) -> str:
     if length is None:
-        return "n/a"
+        return t("misc.unknown_length_placeholder", locale=locale)
+    length = int(round(length))
     h = math.floor(length / 3600)
     m = math.floor((length % 3600) / 60)
     s = length % 60

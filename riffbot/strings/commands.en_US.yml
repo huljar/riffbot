@@ -36,7 +36,9 @@ en_US:
   # Response to !current (information about the currently playing song)
   current: |-
     __**Currently playing:**__
-    ▶  `%{desc}`  (%{len})
+    ▶  `%{desc}`  (%{pos} / %{len})
+  # Response to !current when no song is playing
+  current_no_song: 😴 No song is currently playing.
   # Response to !say when the service is not available
   say_no_results: 😔 Sorry, text to speech is not available.
   # Response to !say if it is read immediately
