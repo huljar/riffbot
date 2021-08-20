@@ -1,5 +1,5 @@
 blinker
-discord.py
+discord.py[voice]
 gTTS
 git+https://github.com/mps-youtube/pafy#egg=pafy
 PyNaCl
