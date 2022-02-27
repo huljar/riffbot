@@ -6,7 +6,7 @@ RiffBot aims to be a lightweight music bot that you can easily host yourself!
 
 ```bash
 # install required libs (e.g. for Debian and its derivatives):
-sudo apt install python3-dev libopus0 ffmpeg
+sudo apt install python3-dev python3-pip libopus0 ffmpeg make git
 # make a virtualenv somewhere and activate it
 python3 -m venv ../venvs/riffbot
 source ../venvs/riffbot/bin/activate
@@ -18,6 +18,16 @@ To install development tools, such as a Python Language Server, run
 ```bash
 make install-dev
 ```
+
+Alternatively, you can also run riffbot in a Docker container:
+
+```bash
+docker build --tag riffbot .
+docker run -e DISCORD_TOKEN=<your_token_here> riffbot
+```
+
+Replace `<your_token_here>` with your Discord token. With the Docker variant, you do not need the `.env` file that is
+described below.
 
 ## Adding the bot to your server
 
